@@ -3,47 +3,60 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Web GPT - Sistema Oficial</title>
+    <title>Web GPT - Ajuste Responsivo</title>
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <style>
         :root { --led-green: #00ff00; --bg: #000; --primary: #800080; --orange: #ffa500; }
-        body { margin: 0; padding: 0; background: #000; color: white; font-family: sans-serif; height: 100vh; overflow: hidden; }
-        .app-container { display: flex; flex-direction: column; height: 100vh; width: 100%; }
-        #screen-login { position: fixed; inset: 0; background: #000; z-index: 1000; display: flex; flex-direction: column; justify-content: center; align-items: center; }
-        .led-trigger { width: 60px; height: 60px; border-radius: 50%; border: 2px solid #fff; background: #333; cursor: pointer; }
-        .led-active { background: var(--led-green) !important; box-shadow: 0 0 15px var(--led-green); }
-        .header { height: 40px; padding: 0 10px; background: #000; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #222; flex-shrink: 0; font-size: 0.85em; }
-        .actions-bar { height: 45px; background: #000; display: flex; justify-content: space-around; align-items: center; border-bottom: 1px solid #222; flex-shrink: 0; }
-        .visor { flex: 1; position: relative; background: #000; overflow: hidden; }
+        * { box-sizing: border-box; }
+        body { margin: 0; padding: 0; background: #000; color: white; font-family: sans-serif; height: 100vh; width: 100vw; overflow: hidden; }
+        
+        .app-container { display: flex; flex-direction: column; height: 100%; width: 100%; }
+
+        /* TELA LOGIN */
+        #screen-login { position: fixed; inset: 0; background: #000; z-index: 1000; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 20px; }
+        .led-trigger { width: 50px; height: 50px; border-radius: 50%; border: 2px solid #fff; background: #333; cursor: pointer; margin-bottom: 10px; }
+        .led-active { background: var(--led-green) !important; box-shadow: 0 0 10px var(--led-green); }
+
+        /* CABEÇALHO E BARRA */
+        .header { height: 40px; padding: 0 10px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #222; flex-shrink: 0; font-size: 0.85em; }
+        .actions-bar { height: 45px; display: flex; justify-content: space-around; align-items: center; border-bottom: 1px solid #222; flex-shrink: 0; }
+        
+        /* VISOR - MANTÉM PROPORÇÃO E DENTRO DA TELA */
+        .visor { flex: 1; position: relative; background: #000; overflow: hidden; width: 100%; }
         #video-remote { width: 100%; height: 100%; object-fit: cover; }
-        #video-local { width: 85px; height: 115px; position: absolute; bottom: 10px; right: 10px; border: 1px solid white; border-radius: 8px; z-index: 10; display: none; background: #222; }
+        #video-local { width: 25%; max-width: 80px; height: auto; aspect-ratio: 9/16; position: absolute; bottom: 10px; right: 10px; border: 1px solid white; border-radius: 8px; z-index: 10; display: none; background: #222; }
+
         .btn-call { width: 35px; height: 35px; background: red; border-radius: 50%; cursor: pointer; border: 2px solid white; }
         .btn-icon { font-size: 20px; cursor: pointer; color: var(--orange); }
-        .contacts-list { position: absolute; top: 0; width: 100%; background: rgba(0,0,0,0.95); z-index: 100; display: none; height: 100%; overflow-y: auto; }
-        .contact-item { padding: 15px; border-bottom: 1px solid #333; color: var(--orange); font-weight: bold; }
+
+        /* AGENDA */
+        .contacts-list { position: absolute; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 100; display: none; overflow-y: auto; }
+        .contact-item { padding: 15px; border-bottom: 1px solid #333; color: var(--orange); font-weight: bold; cursor: pointer; }
     </style>
 </head>
 <body>
 
 <div id="screen-login">
-    <h1 style="color:var(--primary); font-size: 1.5em;">WEB GPT</h1>
+    <h1 style="color:var(--primary); font-size: 1.5em; margin-bottom: 20px;">WEB GPT</h1>
     <div class="led-trigger" id="led-btn" onclick="gerarIDUnico()"></div>
     <p id="status-led" style="font-size: 0.8em; margin: 10px 0;">ATIVAR ID NO LED</p>
-    <input type="number" id="input-id" style="width: 70%; padding: 10px; background: #111; color: white; border: 1px solid #333; text-align: center; border-radius: 8px;" placeholder="DIGITE SEU ID">
+    <input type="number" id="input-id" style="width: 80%; max-width: 300px; padding: 12px; background: #111; color: white; border: 1px solid #333; text-align: center; border-radius: 8px;" placeholder="DIGITE SEU ID">
     <button onclick="entrarNoSistema()" style="margin-top: 15px; padding: 12px 30px; background:var(--primary); color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer;">ENTRAR</button>
 </div>
 
 <div class="app-container">
     <div class="header">
-        <b id="meu-id-txt">ID: ...</b>
+        <b id="meu-id-txt" style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">ID: ...</b>
         <span onclick="toggleAgenda()" style="color:var(--orange); cursor:pointer;">▼ CONTATOS</span>
     </div>
+
     <div class="actions-bar">
         <div class="btn-call" onclick="fazerChamadaDireta()"></div>
         <div class="btn-icon" onclick="salvarNovoContato()">▲</div>
         <div class="btn-icon" onclick="document.getElementById('img-input').click()">🖼️</div>
         <input type="file" id="img-input" style="display:none" onchange="trocarFundo(event)">
     </div>
+
     <div class="visor" id="visor-container">
         <div id="list-contatos" class="contacts-list"></div>
         <video id="video-remote" autoplay playsinline></video>
@@ -53,37 +66,29 @@
 
 <script>
     const API_KEY = "OngH8WRkvXaOgMmFeZo";
-    // Carrega a lista de IDs permitidos de forma persistente
     let autorizados = JSON.parse(localStorage.getItem('autorizados_' + API_KEY)) || [];
     let peer, localStream;
     let contatos = JSON.parse(localStorage.getItem('agenda_' + API_KEY)) || [];
 
-    // O LED agora serve apenas para CADASTRAR um novo ID na sua lista autorizada
     function gerarIDUnico() {
         const novoID = Math.floor(100000 + Math.random() * 800000);
         document.getElementById('input-id').value = novoID;
         document.getElementById('led-btn').classList.add('led-active');
-        
-        // Salva na lista de autorizados para não sumir
         if(!autorizados.includes(novoID.toString())) {
             autorizados.push(novoID.toString());
             localStorage.setItem('autorizados_' + API_KEY, JSON.stringify(autorizados));
         }
-        alert("ID Cadastrado com sucesso: " + novoID);
     }
 
     async function entrarNoSistema() {
         const id = document.getElementById('input-id').value;
-        
-        // Verifica se o ID está na sua lista de cadastrados
-        if (!autorizados.includes(id)) {
-            return alert("ACESSO NEGADO: ID não autorizado.");
-        }
+        if (!autorizados.includes(id)) return alert("ID NÃO AUTORIZADO");
         
         try {
             localStream = await navigator.mediaDevices.getUserMedia({video:true, audio:true});
-            document.getElementById('video-local').srcObject = localStream;
-            document.getElementById('video-local').style.display = 'block';
+            const vidLocal = document.getElementById('video-local');
+            vidLocal.srcObject = localStream;
+            vidLocal.style.display = 'block';
             
             peer = new Peer(id);
             document.getElementById('meu-id-txt').innerText = "ID: " + id;
@@ -94,10 +99,9 @@
                 call.on('stream', s => document.getElementById('video-remote').srcObject = s);
             });
             renderizarAgenda();
-        } catch(e) { alert("Permita a câmera!"); }
+        } catch(e) { alert("Permita acesso à câmera!"); }
     }
 
-    // Funções mantidas da sua interface original
     function salvarNovoContato() {
         const nome = prompt("Nome:");
         const id = prompt("ID:");
@@ -114,7 +118,7 @@
     }
 
     function ligarPara(idAmigo) {
-        document.getElementById('list-contatos').style.display = 'none';
+        toggleAgenda();
         const call = peer.call(idAmigo, localStream);
         call.on('stream', s => document.getElementById('video-remote').srcObject = s);
     }
@@ -131,7 +135,10 @@
 
     function trocarFundo(e) {
         const reader = new FileReader();
-        reader.onload = ev => document.getElementById('visor-container').style.backgroundImage = `url('${ev.target.result}')`;
+        reader.onload = ev => {
+            document.getElementById('visor-container').style.backgroundImage = `url('${ev.target.result}')`;
+            document.getElementById('visor-container').style.backgroundSize = 'cover';
+        };
         reader.readAsDataURL(e.target.files[0]);
     }
 </script>
