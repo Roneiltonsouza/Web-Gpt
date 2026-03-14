@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Web GPT - Ajuste Responsivo</title>
+    <title>Web GPT - Chamada Sob Demanda</title>
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <style>
         :root { --led-green: #00ff00; --bg: #000; --primary: #800080; --orange: #ffa500; }
@@ -11,50 +11,37 @@
         body { margin: 0; padding: 0; background: #000; color: white; font-family: sans-serif; height: 100vh; width: 100vw; overflow: hidden; }
         
         .app-container { display: flex; flex-direction: column; height: 100%; width: 100%; }
-
-        /* TELA LOGIN */
-        #screen-login { position: fixed; inset: 0; background: #000; z-index: 1000; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 20px; }
-        .led-trigger { width: 50px; height: 50px; border-radius: 50%; border: 2px solid #fff; background: #333; cursor: pointer; margin-bottom: 10px; }
-        .led-active { background: var(--led-green) !important; box-shadow: 0 0 10px var(--led-green); }
-
-        /* CABEÇALHO E BARRA */
-        .header { height: 40px; padding: 0 10px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #222; flex-shrink: 0; font-size: 0.85em; }
-        .actions-bar { height: 45px; display: flex; justify-content: space-around; align-items: center; border-bottom: 1px solid #222; flex-shrink: 0; }
+        #screen-login { position: fixed; inset: 0; background: #000; z-index: 5000; display: flex; flex-direction: column; justify-content: center; align-items: center; }
         
-        /* VISOR - MANTÉM PROPORÇÃO E DENTRO DA TELA */
-        .visor { flex: 1; position: relative; background: #000; overflow: hidden; width: 100%; }
+        .header { height: 40px; padding: 0 10px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #222; }
+        .actions-bar { height: 45px; display: flex; justify-content: space-around; align-items: center; border-bottom: 1px solid #222; }
+        
+        .visor { flex: 1; position: relative; background: #000; overflow: hidden; }
         #video-remote { width: 100%; height: 100%; object-fit: cover; }
-        #video-local { width: 25%; max-width: 80px; height: auto; aspect-ratio: 9/16; position: absolute; bottom: 10px; right: 10px; border: 1px solid white; border-radius: 8px; z-index: 10; display: none; background: #222; }
+        #video-local { width: 80px; height: 110px; position: absolute; bottom: 10px; right: 10px; border: 1px solid white; z-index: 10; display: none; background: #222; }
 
-        .btn-call { width: 35px; height: 35px; background: red; border-radius: 50%; cursor: pointer; border: 2px solid white; }
-        .btn-icon { font-size: 20px; cursor: pointer; color: var(--orange); }
-
-        /* AGENDA */
-        .contacts-list { position: absolute; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 100; display: none; overflow-y: auto; }
-        .contact-item { padding: 15px; border-bottom: 1px solid #333; color: var(--orange); font-weight: bold; cursor: pointer; }
+        .contacts-list { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.98); z-index: 2000; display: none; overflow-y: auto; }
+        .contact-item { padding: 20px; border-bottom: 1px solid #333; color: var(--orange); font-weight: bold; cursor: pointer; }
     </style>
 </head>
 <body>
 
 <div id="screen-login">
-    <h1 style="color:var(--primary); font-size: 1.5em; margin-bottom: 20px;">WEB GPT</h1>
-    <div class="led-trigger" id="led-btn" onclick="gerarIDUnico()"></div>
-    <p id="status-led" style="font-size: 0.8em; margin: 10px 0;">ATIVAR ID NO LED</p>
-    <input type="number" id="input-id" style="width: 80%; max-width: 300px; padding: 12px; background: #111; color: white; border: 1px solid #333; text-align: center; border-radius: 8px;" placeholder="DIGITE SEU ID">
-    <button onclick="entrarNoSistema()" style="margin-top: 15px; padding: 12px 30px; background:var(--primary); color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer;">ENTRAR</button>
+    <h1 style="color:var(--primary)">WEB GPT</h1>
+    <div id="led-btn" style="width:50px; height:50px; border-radius:50%; border:2px solid #fff; background:#333; cursor:pointer;" onclick="gerarIDUnico()"></div>
+    <input type="number" id="input-id" style="width: 70%; padding: 10px; margin: 10px 0; background: #111; color: white; border: 1px solid #333; text-align: center;" placeholder="ID">
+    <button onclick="entrarNoSistema()" style="padding: 10px 30px; background:var(--primary); color:white; border:none; cursor:pointer;">ENTRAR</button>
 </div>
 
 <div class="app-container">
     <div class="header">
-        <b id="meu-id-txt" style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">ID: ...</b>
+        <b id="meu-id-txt">ID: ...</b>
         <span onclick="toggleAgenda()" style="color:var(--orange); cursor:pointer;">▼ CONTATOS</span>
     </div>
 
     <div class="actions-bar">
-        <div class="btn-call" onclick="fazerChamadaDireta()"></div>
-        <div class="btn-icon" onclick="salvarNovoContato()">▲</div>
-        <div class="btn-icon" onclick="document.getElementById('img-input').click()">🖼️</div>
-        <input type="file" id="img-input" style="display:none" onchange="trocarFundo(event)">
+        <div style="width:30px; height:30px; background:red; border-radius:50%; cursor:pointer;" onclick="fazerChamadaDireta()"></div>
+        <div style="color:var(--orange); cursor:pointer;" onclick="salvarNovoContato()">▲ ADICIONAR</div>
     </div>
 
     <div class="visor" id="visor-container">
@@ -67,39 +54,60 @@
 <script>
     const API_KEY = "OngH8WRkvXaOgMmFeZo";
     let autorizados = JSON.parse(localStorage.getItem('autorizados_' + API_KEY)) || [];
-    let peer, localStream;
     let contatos = JSON.parse(localStorage.getItem('agenda_' + API_KEY)) || [];
+    let peer, localStream, meuID;
 
+    // Apenas prepara o ID, não abre câmera
     function gerarIDUnico() {
         const novoID = Math.floor(100000 + Math.random() * 800000);
         document.getElementById('input-id').value = novoID;
-        document.getElementById('led-btn').classList.add('led-active');
-        if(!autorizados.includes(novoID.toString())) {
-            autorizados.push(novoID.toString());
-            localStorage.setItem('autorizados_' + API_KEY, JSON.stringify(autorizados));
+        document.getElementById('led-btn').style.background = 'var(--led-green)';
+        autorizados.push(novoID.toString());
+        localStorage.setItem('autorizados_' + API_KEY, JSON.stringify(autorizados));
+    }
+
+    // Login simples (sem câmera)
+    function entrarNoSistema() {
+        const id = document.getElementById('input-id').value;
+        if (!autorizados.includes(id)) return alert("ID NÃO AUTORIZADO");
+        meuID = id;
+        peer = new Peer(id);
+        document.getElementById('meu-id-txt').innerText = "ID: " + id;
+        document.getElementById('screen-login').style.display = 'none';
+        
+        // Listener para chamadas recebidas (ativa a câmera só se alguém ligar)
+        peer.on('call', async (call) => {
+            await iniciarCamera();
+            call.answer(localStream);
+            call.on('stream', s => document.getElementById('video-remote').srcObject = s);
+        });
+        renderizarAgenda();
+    }
+
+    // Ativa câmera e microfone somente na chamada
+    async function iniciarCamera() {
+        if (!localStream) {
+            localStream = await navigator.mediaDevices.getUserMedia({video:true, audio:true});
+            document.getElementById('video-local').srcObject = localStream;
+            document.getElementById('video-local').style.display = 'block';
         }
     }
 
-    async function entrarNoSistema() {
-        const id = document.getElementById('input-id').value;
-        if (!autorizados.includes(id)) return alert("ID NÃO AUTORIZADO");
-        
-        try {
-            localStream = await navigator.mediaDevices.getUserMedia({video:true, audio:true});
-            const vidLocal = document.getElementById('video-local');
-            vidLocal.srcObject = localStream;
-            vidLocal.style.display = 'block';
-            
-            peer = new Peer(id);
-            document.getElementById('meu-id-txt').innerText = "ID: " + id;
-            document.getElementById('screen-login').style.display = 'none';
-            
-            peer.on('call', call => {
-                call.answer(localStream);
-                call.on('stream', s => document.getElementById('video-remote').srcObject = s);
-            });
-            renderizarAgenda();
-        } catch(e) { alert("Permita acesso à câmera!"); }
+    async function ligarPara(idAmigo) {
+        toggleAgenda();
+        await iniciarCamera(); // Câmera só liga aqui
+        const call = peer.call(idAmigo, localStream);
+        call.on('stream', s => document.getElementById('video-remote').srcObject = s);
+    }
+
+    // Funções de apoio
+    function renderizarAgenda() {
+        document.getElementById('list-contatos').innerHTML = contatos.map(c => `<div class="contact-item" onclick="ligarPara('${c.id}')">📞 ${c.nome}</div>`).join('');
+    }
+
+    function toggleAgenda() {
+        const div = document.getElementById('list-contatos');
+        div.style.display = (div.style.display === 'block') ? 'none' : 'block';
     }
 
     function salvarNovoContato() {
@@ -112,34 +120,9 @@
         }
     }
 
-    function renderizarAgenda() {
-        const lista = document.getElementById('list-contatos');
-        lista.innerHTML = contatos.map(c => `<div class="contact-item" onclick="ligarPara('${c.id}')">${c.nome} (LIGAR)</div>`).join('');
-    }
-
-    function ligarPara(idAmigo) {
-        toggleAgenda();
-        const call = peer.call(idAmigo, localStream);
-        call.on('stream', s => document.getElementById('video-remote').srcObject = s);
-    }
-
-    function toggleAgenda() {
-        const div = document.getElementById('list-contatos');
-        div.style.display = (div.style.display === 'block') ? 'none' : 'block';
-    }
-
     function fazerChamadaDireta() {
         const id = prompt("ID para ligar:");
         if(id) ligarPara(id);
-    }
-
-    function trocarFundo(e) {
-        const reader = new FileReader();
-        reader.onload = ev => {
-            document.getElementById('visor-container').style.backgroundImage = `url('${ev.target.result}')`;
-            document.getElementById('visor-container').style.backgroundSize = 'cover';
-        };
-        reader.readAsDataURL(e.target.files[0]);
     }
 </script>
 </body>
