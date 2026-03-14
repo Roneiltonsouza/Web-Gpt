@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Web GPT - Vibração e Encerramento</title>
+    <title>Web GPT - ID Permanente</title>
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <style>
         :root { --led-green: #00ff00; --bg: #000; --primary: #800080; --orange: #ffa500; }
@@ -23,7 +23,6 @@
         .contacts-list { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.98); z-index: 2000; display: none; overflow-y: auto; }
         .contact-item { padding: 20px; border-bottom: 1px solid #333; color: var(--orange); font-weight: bold; cursor: pointer; }
 
-        /* NOTIFICAÇÃO E BOTAO ENCERRAR */
         #incoming-call { position: fixed; top: 20%; left: 5%; width: 90%; background: #222; border: 2px solid var(--primary); border-radius: 15px; padding: 20px; z-index: 6000; display: none; text-align: center; }
         #btn-hangup { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); background: red; color: white; border: none; padding: 15px 30px; border-radius: 30px; font-weight: bold; z-index: 3000; display: none; cursor: pointer; border: 2px solid white; }
         
@@ -37,13 +36,14 @@
 
 <div id="screen-login">
     <h1 style="color:var(--primary)">WEB GPT</h1>
-    <div id="led-btn" style="width:50px; height:50px; border-radius:50%; border:2px solid #fff; background:#333;" onclick="gerarIDUnico()"></div>
-    <input type="number" id="input-id" style="width: 70%; padding: 10px; margin: 10px 0; background: #111; color: white; border: 1px solid #333; text-align: center;" placeholder="ID">
-    <button onclick="entrarNoSistema()" style="padding: 10px 30px; background:var(--primary); color:white; border:none;">ENTRAR</button>
+    <div id="led-btn" style="width:50px; height:50px; border-radius:50%; border:2px solid #fff; background:#333; cursor:pointer;" onclick="gerarIDUnico()"></div>
+    <p style="font-size: 0.7em; margin: 10px 0;">GERAR / ATIVAR</p>
+    <input type="number" id="input-id" style="width: 70%; padding: 15px; margin: 10px 0; background: #111; color: white; border: 1px solid #333; text-align: center; border-radius: 10px; font-size: 1.2em;" placeholder="ID">
+    <button onclick="entrarNoSistema()" style="padding: 12px 40px; background:var(--primary); color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer;">ENTRAR</button>
 </div>
 
 <div id="incoming-call">
-    <h2 style="color:var(--orange)">CHAMADA RECEBIDA...</h2>
+    <h2 style="color:var(--orange)">CHAMADA...</h2>
     <p id="caller-id"></p>
     <button class="btn-accept" onclick="atenderChamada()">ATENDER</button>
     <button class="btn-reject" onclick="recusarChamada()">RECUSAR</button>
@@ -78,17 +78,35 @@
     let peer, localStream, currentCall, vibraInterval;
     const ringtone = document.getElementById('ringtone');
 
+    // CARREGAR ID SALVO AO ABRIR O APP
+    window.onload = () => {
+        const idSalvo = localStorage.getItem('ultimo_id_' + API_KEY);
+        if (idSalvo) {
+            document.getElementById('input-id').value = idSalvo;
+            document.getElementById('led-btn').style.background = 'var(--led-green)';
+        }
+        const fundoSalvo = localStorage.getItem('fundo_' + API_KEY);
+        if(fundoSalvo) document.getElementById('visor-container').style.backgroundImage = `url('${fundoSalvo}')`;
+    };
+
     function gerarIDUnico() {
-        const novoID = Math.floor(100000 + Math.random() * 800000);
+        const novoID = Math.floor(100000 + Math.random() * 800000).toString();
         document.getElementById('input-id').value = novoID;
         document.getElementById('led-btn').style.background = 'var(--led-green)';
-        autorizados.push(novoID.toString());
+        
+        // Salva na lista e como ID principal
+        if(!autorizados.includes(novoID)) autorizados.push(novoID);
         localStorage.setItem('autorizados_' + API_KEY, JSON.stringify(autorizados));
+        localStorage.setItem('ultimo_id_' + API_KEY, novoID);
     }
 
     function entrarNoSistema() {
         const id = document.getElementById('input-id').value;
-        if (!autorizados.includes(id)) return alert("ID NÃO AUTORIZADO");
+        if (!autorizados.includes(id.toString())) return alert("ID NÃO AUTORIZADO");
+        
+        // Sempre salva o último ID usado para entrar
+        localStorage.setItem('ultimo_id_' + API_KEY, id);
+        
         peer = new Peer(id);
         document.getElementById('meu-id-txt').innerText = "ID: " + id;
         document.getElementById('screen-login').style.display = 'none';
@@ -97,28 +115,17 @@
             currentCall = call;
             document.getElementById('incoming-call').style.display = 'block';
             document.getElementById('caller-id').innerText = "ID: " + call.peer;
-            
-            // Tocar e Vibrar
             ringtone.play().catch(() => {});
-            iniciarVibracao();
+            if ("vibrate" in navigator) vibraInterval = setInterval(() => navigator.vibrate([500, 300]), 1000);
         });
         renderizarAgenda();
     }
 
-    function iniciarVibracao() {
-        if ("vibrate" in navigator) {
-            vibraInterval = setInterval(() => {
-                navigator.vibrate([500, 300, 500]);
-            }, 1000);
-        }
-    }
-
-    function pararNotificacoes() {
-        ringtone.pause();
-        ringtone.currentTime = 0;
-        clearInterval(vibraInterval);
-        if ("vibrate" in navigator) navigator.vibrate(0);
-        document.getElementById('incoming-call').style.display = 'none';
+    // --- FUNÇÕES DE CHAMADA ---
+    function encerrarChamada() {
+        if(currentCall) currentCall.close();
+        document.getElementById('btn-hangup').style.display = 'none';
+        document.getElementById('video-remote').srcObject = null;
     }
 
     async function atenderChamada() {
@@ -128,24 +135,10 @@
         configurarChamada(currentCall);
     }
 
-    function recusarChamada() {
-        pararNotificacoes();
-        currentCall.close();
-    }
-
-    function encerrarChamada() {
-        if(currentCall) currentCall.close();
-        document.getElementById('btn-hangup').style.display = 'none';
-        document.getElementById('video-remote').srcObject = null;
-    }
-
-    function configurarChamada(call) {
-        document.getElementById('btn-hangup').style.display = 'block';
-        call.on('stream', s => document.getElementById('video-remote').srcObject = s);
-        call.on('close', () => {
-            document.getElementById('btn-hangup').style.display = 'none';
-            document.getElementById('video-remote').srcObject = null;
-        });
+    function pararNotificacoes() {
+        ringtone.pause(); ringtone.currentTime = 0;
+        clearInterval(vibraInterval);
+        document.getElementById('incoming-call').style.display = 'none';
     }
 
     async function ativarCamera() {
@@ -156,6 +149,12 @@
         }
     }
 
+    function configurarChamada(call) {
+        document.getElementById('btn-hangup').style.display = 'block';
+        call.on('stream', s => document.getElementById('video-remote').srcObject = s);
+        call.on('close', () => encerrarChamada());
+    }
+
     async function ligarPara(idAmigo) {
         toggleAgenda();
         await ativarCamera();
@@ -163,6 +162,7 @@
         configurarChamada(currentCall);
     }
 
+    // --- INTERFACE ---
     function renderizarAgenda() {
         document.getElementById('list-contatos').innerHTML = contatos.map(c => `<div class="contact-item" onclick="ligarPara('${c.id}')">📞 ${c.nome}</div>`).join('');
     }
@@ -195,11 +195,6 @@
         const id = prompt("ID para ligar:");
         if(id) ligarPara(id);
     }
-
-    window.onload = () => {
-        const fundoSalvo = localStorage.getItem('fundo_' + API_KEY);
-        if(fundoSalvo) document.getElementById('visor-container').style.backgroundImage = `url('${fundoSalvo}')`;
-    };
 </script>
 </body>
 </html>
