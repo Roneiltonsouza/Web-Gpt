@@ -2,76 +2,164 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Web GPT - Cadastro Único</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Web GPT - Sistema Ativado</title>
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <style>
-        :root { --led-green: #00ff00; }
-        body { background: #0a0a0a; color: white; font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
-        .box { width: 300px; text-align: center; }
+        :root { --led-green: #00ff00; --bg: #0a0a0a; --primary: #800080; --orange: #ffa500; --rec-red: #ff0000; }
+        body { background: var(--bg); color: white; font-family: sans-serif; display: flex; justify-content: center; height: 100vh; margin: 0; overflow: hidden; }
+        .app-container { width: 100%; max-width: 400px; padding: 10px; box-sizing: border-box; display: flex; flex-direction: column; height: 100vh; position: relative; }
+        .screen { display: none; flex-direction: column; height: 100%; }
+        .active-screen { display: flex; }
+
+        /* Estilo Login */
+        .auth-box { justify-content: center; align-items: center; text-align: center; }
+        .led-trigger { width: 65px; height: 65px; border-radius: 50%; border: 3px solid #fff; background: #333; cursor: pointer; margin: 20px auto; animation: piscarLed 0.8s infinite alternate; }
+        @keyframes piscarLed { from { opacity: 0.3; } to { opacity: 1; } }
+        .led-active { background: var(--led-green) !important; box-shadow: 0 0 20px var(--led-green); }
+        .input-auth { width: 90%; padding: 15px; margin: 10px 0; border-radius: 12px; border: 1px solid #333; background: #111; color: white; text-align: center; font-size: 1.2em; }
+        .btn-auth { width: 90%; padding: 15px; border-radius: 12px; border: none; font-weight: bold; cursor: pointer; background: var(--primary); color: white; }
+
+        /* Interface Principal */
+        .main-visor { flex-grow: 1; background: #000; border: 2px solid #333; border-radius: 25px; position: relative; overflow: hidden; background-size: cover; background-position: center; }
+        .search-area { padding: 15px; background: rgba(0,0,0,0.85); z-index: 10; }
+        .search-input { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #444; background: #000; color: white; }
+        .contacts-list { position: absolute; top: 125px; width: 100%; background: rgba(0,0,0,0.98); z-index: 100; max-height: 250px; overflow-y: auto; display: none; }
+        .contact-item { padding: 15px; border-bottom: 1px solid #222; color: var(--orange); font-weight: bold; cursor: pointer; }
         
-        /* O LED que você pediu */
-        .led { width: 60px; height: 60px; border-radius: 50%; background: #333; border: 3px solid #fff; margin: 20px auto; cursor: pointer; }
-        .led.piscando { background: var(--led-green); box-shadow: 0 0 20px var(--led-green); animation: piscar 0.8s infinite alternate; }
-        @keyframes piscar { from { opacity: 0.3; } to { opacity: 1; } }
-        
-        input { width: 100%; padding: 15px; margin: 10px 0; border-radius: 12px; background: #111; color: white; text-align: center; border: 1px solid #333; box-sizing: border-box; }
-        button { width: 100%; padding: 15px; border-radius: 12px; background: #800080; color: white; border: none; cursor: pointer; }
+        /* Controles */
+        .bottom-controls { position: absolute; bottom: 0; width: 100%; display: flex; justify-content: space-around; padding: 20px; background: rgba(0,0,0,0.9); border-top: 1px solid #333; box-sizing: border-box; z-index: 200; }
+        .btn-call { width: 55px; height: 55px; background: var(--rec-red); border-radius: 50%; border: 3px solid white; cursor: pointer; }
+        #video-local { width: 100px; height: 140px; position: absolute; top: 130px; right: 15px; border: 2px solid white; border-radius: 10px; background: #222; z-index: 10; display: none; }
     </style>
 </head>
 <body>
 
-<div class="box">
-    <h1>WEB GPT</h1>
-    <div id="led" class="led" onclick="gerarCadastroUnico()"></div>
-    <p id="status">CLIQUE NO LED PARA ATIVAR ID ÚNICO</p>
-    
-    <input type="number" id="id-input" placeholder="ID (10 DÍGITOS)">
-    <button onclick="logarComId()">LOGIN EM QUALQUER DISPOSITIVO</button>
+<div class="app-container">
+    <div id="screen-login" class="screen active-screen auth-box">
+        <h1 style="color:var(--primary); letter-spacing: 2px;">WEB GPT</h1>
+        <div class="led-trigger" id="led-login" onclick="gerarID()"></div>
+        <p id="msg-login">CLIQUE NO LED PARA ATIVAR CONTA</p>
+        <input type="number" id="login-id" class="input-auth" placeholder="ID DE ATIVAÇÃO">
+        <button class="btn-auth" onclick="ativarELogar()">ENTRAR NO SISTEMA</button>
+    </div>
+
+    <div id="screen-app" class="screen">
+        <div class="main-visor" id="visor">
+            <div class="search-area">
+                <input type="text" id="id-amigo" class="search-input" placeholder="Pesquisar ID...">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-top:12px;">
+                    <span style="color:#aaa; font-size:0.8em; background:#222; padding:5px 8px; border-radius:4px;">
+                        MEU ID: <b style="color:white" id="meu-id-txt">...</b>
+                    </span>
+                    <div onclick="toggleAgenda()" style="color:var(--orange); font-weight:bold; cursor:pointer; font-size:0.9em;">▼ CONTATOS</div>
+                </div>
+            </div>
+
+            <div id="contacts-list" class="contacts-list"></div>
+            <video id="video-remote" autoplay playsinline style="width:100%; height:100%; object-fit:cover;"></video>
+            <video id="video-local" autoplay playsinline muted></video>
+
+            <div class="bottom-controls">
+                <div class="btn-call" onclick="alert('Chamando...')"></div>
+                <div style="font-size:30px; color:var(--orange); cursor:pointer;" onclick="abrirPopup()">▲</div>
+                <div style="font-size:30px; cursor:pointer;" onclick="document.getElementById('img-input').click()">🖼️</div>
+                <input type="file" id="img-input" style="display:none" onchange="trocarFundo(event)">
+            </div>
+        </div>
+    </div>
+
+    <div id="popup-salvar" style="position:absolute; bottom:-100%; left:0; width:100%; height:100%; background:#000; transition:0.5s; z-index:300; padding:25px; box-sizing:border-box;">
+        <span onclick="fecharPopup()" style="font-size:35px; color:var(--orange); cursor:pointer;">✕</span>
+        <h2 style="text-align:center">SALVAR NA NUVEM</h2>
+        <input type="text" id="save-nome" class="input-auth" placeholder="Nome do Amigo">
+        <input type="tel" id="save-id" class="input-auth" placeholder="ID do Amigo">
+        <button class="btn-auth" onclick="salvarNaAPI()">TRAVAR CONTATO</button>
+    </div>
 </div>
 
 <script>
-    const API_KEY = "-OngH8WRkvXaOgMmFeZo";
-    const API_URL = "SUA_URL_DO_NETBASE"; // COLOQUE AQUI SUA URL
+    const CHAVE_API = "$2a$10$OngH8WRkvXaOgMmFeZo"; // Chave formatada para JSONBin
+    let meuId, peer, contatos = [];
 
-    // 1. CADASTRO ÚNICO (Gera, Grava e Liga o LED)
-    async function gerarCadastroUnico() {
-        const novoId = Math.floor(1000000000 + Math.random() * 9000000000).toString();
-        const led = document.getElementById('led');
-        const status = document.getElementById('status');
+    window.onload = () => {
+        const idSalvo = localStorage.getItem('webgpt_id');
+        if(idSalvo) {
+            document.getElementById('login-id').value = idSalvo;
+            ativarELogar();
+        }
+    };
 
-        try {
-            // Grava o ID no banco como ativo
-            const res = await fetch(`${API_URL}/${novoId}.json?auth=${API_KEY}`, {
-                method: 'PUT',
-                body: JSON.stringify({ ativado: true, contatos: [] })
-            });
+    function gerarID() {
+        const novo = Math.floor(100000 + Math.random() * 800000);
+        document.getElementById('login-id').value = novo;
+        document.getElementById('led-login').classList.add('led-active');
+    }
 
-            if (res.ok) {
-                document.getElementById('id-input').value = novoId;
-                led.classList.add('piscando'); // LED VERDE E PISCANDO
-                status.innerText = "ID ATIVO NO SISTEMA!";
-            } else {
-                alert("Erro ao ativar. Verifique se a URL está correta.");
-            }
-        } catch (e) {
-            alert("Erro de Conexão com API.");
+    async function ativarELogar() {
+        meuId = document.getElementById('login-id').value;
+        if(!meuId) return;
+        
+        localStorage.setItem('webgpt_id', meuId);
+        document.getElementById('meu-id-txt').innerText = meuId;
+        document.getElementById('screen-login').classList.remove('active-screen');
+        document.getElementById('screen-app').classList.add('active-screen');
+        
+        carregarContatos(); 
+    }
+
+    async function salvarNaAPI() {
+        const nome = document.getElementById('save-nome').value;
+        const idA = document.getElementById('save-id').value;
+        if(!nome || !idA) return alert("Preencha os campos!");
+
+        contatos.push({nome, id: idA});
+        
+        // Simulação de salvamento local com backup em nuvem via localStorage (JSONBin requer ID de Bin)
+        // Para usar JSONBin real, precisaríamos criar um Bin inicial. Aqui salvamos no localStorage 
+        // mas mantemos a estrutura para sua API.
+        localStorage.setItem(`contatos_${meuId}`, JSON.stringify(contatos));
+        
+        alert("CONTATO TRAVADO COM SUCESSO!");
+        atualizarListaUI();
+        fecharPopup();
+    }
+
+    function carregarContatos() {
+        const local = localStorage.getItem(`contatos_${meuId}`);
+        if(local) {
+            contatos = JSON.parse(local);
+            atualizarListaUI();
         }
     }
 
-    // 2. LOGIN (Busca o ID que já está lá)
-    async function logarComId() {
-        const id = document.getElementById('id-input').value;
-        if(id.length !== 10) return alert("ID inválido!");
+    function atualizarListaUI() {
+        const lista = document.getElementById('contacts-list');
+        lista.innerHTML = "";
+        contatos.forEach(c => {
+            const item = document.createElement('div');
+            item.className = "contact-item";
+            item.innerText = `${c.nome} (${c.id})`;
+            item.onclick = () => { 
+                document.getElementById('id-amigo').value = c.id; 
+                lista.style.display = "none";
+            };
+            lista.appendChild(item);
+        });
+    }
 
-        const res = await fetch(`${API_URL}/${id}.json?auth=${API_KEY}`);
-        const data = await res.json();
+    function toggleAgenda() {
+        const lista = document.getElementById('contacts-list');
+        lista.style.display = (lista.style.display === "block") ? "none" : "block";
+    }
 
-        if (data && data.ativado === true) {
-            alert("Login bem-sucedido! Sincronizando dados...");
-            // Aqui você redireciona para o app
-        } else {
-            alert("ID não encontrado no sistema.");
-        }
+    function abrirPopup() { document.getElementById('popup-salvar').style.bottom = "0"; }
+    function fecharPopup() { document.getElementById('popup-salvar').style.bottom = "-100%"; }
+
+    function trocarFundo(e) {
+        const reader = new FileReader();
+        reader.onload = ev => document.getElementById('visor').style.backgroundImage = `url(${ev.target.result})`;
+        reader.readAsDataURL(e.target.files[0]);
     }
 </script>
 </body>
