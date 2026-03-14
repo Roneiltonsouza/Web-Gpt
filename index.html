@@ -3,137 +3,162 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Web GPT - Sistema Completo</title>
+    <title>Web GPT - Sistema Oficial</title>
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <style>
-        :root { --led-green: #00ff00; --bg: #0a0a0a; --primary: #800080; --orange: #ffa500; --rec-red: #ff0000; }
-        body { background: var(--bg); color: white; font-family: sans-serif; display: flex; justify-content: center; height: 100vh; margin: 0; overflow: hidden; }
-        .app-container { width: 100%; max-width: 400px; height: 100vh; display: flex; flex-direction: column; position: relative; }
-        .screen { display: none; flex-direction: column; height: 100%; width: 100%; }
-        .active-screen { display: flex; }
+        :root { --led-green: #00ff00; --bg: #000; --primary: #800080; --orange: #ffa500; }
+        body { margin: 0; padding: 0; background: #000; color: white; font-family: sans-serif; height: 100vh; overflow: hidden; }
         
-        .main-visor { flex-grow: 1; background: #000; border: 2px solid #333; border-radius: 25px; margin: 10px; position: relative; overflow: hidden; background-size: cover; background-position: center; }
-        .contacts-list { position: absolute; top: 130px; width: 90%; left: 5%; background: #111; z-index: 500; display: none; border-radius: 10px; border: 1px solid #444; max-height: 250px; overflow-y: auto; }
-        .contact-item { padding: 15px; border-bottom: 1px solid #333; color: var(--orange); font-weight: bold; cursor: pointer; }
-        .bottom-controls { height: 80px; width: 100%; display: flex; justify-content: space-around; align-items: center; background: #000; border-top: 1px solid #333; flex-shrink: 0; }
-        .btn-call { width: 50px; height: 50px; background: var(--rec-red); border-radius: 50%; border: 3px solid white; cursor: pointer; }
-        .input-auth { width: 90%; padding: 15px; margin: 10px 0; border-radius: 12px; border: 1px solid #333; background: #111; color: white; text-align: center; }
+        .app-container { display: flex; flex-direction: column; height: 100vh; width: 100%; }
+
+        /* TELA DE LOGIN/CADASTRO */
+        #screen-login { position: fixed; inset: 0; background: #000; z-index: 1000; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; }
+        .led-trigger { width: 60px; height: 60px; border-radius: 50%; border: 2px solid #fff; background: #333; cursor: pointer; margin-bottom: 10px; }
+        .led-active { background: var(--led-green) !important; box-shadow: 0 0 15px var(--led-green); }
+        .input-auth { width: 70%; padding: 12px; background: #111; color: white; border: 1px solid #333; border-radius: 8px; text-align: center; font-size: 1.1em; margin-bottom: 15px; }
+
+        /* CABEÇALHO E AÇÕES (BEM FINOS) */
+        .header { height: 35px; padding: 0 12px; background: #000; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #222; flex-shrink: 0; font-size: 0.8em; }
+        .actions-bar { height: 45px; background: #000; display: flex; justify-content: space-around; align-items: center; border-bottom: 1px solid #222; flex-shrink: 0; }
+        
+        /* VISOR DE VÍDEO (MÁXIMO ESPAÇO) */
+        .visor { flex: 1; position: relative; background: #000; overflow: hidden; }
+        #video-remote { width: 100%; height: 100%; object-fit: cover; }
+        #video-local { width: 85px; height: 115px; position: absolute; bottom: 10px; right: 10px; border: 1px solid white; border-radius: 8px; z-index: 10; display: none; background: #111; }
+
+        /* BOTÕES E ICONES */
+        .btn-call { width: 35px; height: 35px; background: red; border-radius: 50%; cursor: pointer; border: 1px solid white; }
+        .btn-icon { font-size: 22px; cursor: pointer; color: var(--orange); }
+
+        /* AGENDA DE CONTATOS */
+        .contacts-list { position: absolute; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.98); z-index: 100; display: none; overflow-y: auto; }
+        .contact-item { padding: 18px; border-bottom: 1px solid #333; color: var(--orange); font-weight: bold; font-size: 1.1em; cursor: pointer; }
     </style>
 </head>
 <body>
 
+<div id="screen-login">
+    <h1 style="color:var(--primary); margin-bottom: 20px;">WEB GPT</h1>
+    <div class="led-trigger" id="led-btn" onclick="gerarIDUnico()"></div>
+    <p style="font-size: 0.8em; color: #888; margin-bottom: 20px;">CLIQUE NO LED PARA ATIVAR ID</p>
+    <input type="number" id="input-id" class="input-auth" placeholder="ID GERADO">
+    <button onclick="entrarNoSistema()" style="padding: 12px 40px; background:var(--primary); color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer;">ENTRAR NO SISTEMA</button>
+</div>
+
 <div class="app-container">
-    <div id="screen-login" class="screen active-screen" style="justify-content:center; align-items:center;">
-        <h1>WEB GPT</h1>
-        <div id="led-login" onclick="gerarID()" style="width:60px; height:60px; border-radius:50%; border:2px solid #fff; cursor:pointer;"></div>
-        <input type="number" id="login-id" class="input-auth" placeholder="SEU ID">
-        <button onclick="entrarNoSistema()" style="padding:15px 40px; background:var(--primary); color:white; border:none; border-radius:10px;">ENTRAR</button>
+    <div class="header">
+        <b id="meu-id-txt">MEU ID: ...</b>
+        <span onclick="toggleAgenda()" style="color:var(--orange); cursor:pointer; font-weight:bold;">▼ CONTATOS</span>
     </div>
 
-    <div id="screen-app" class="screen">
-        <div style="padding:15px; background:#000;">
-            <input type="text" id="id-amigo" placeholder="Pesquisar ID..." style="width:100%; padding:10px; border-radius:8px;">
-            <div style="display:flex; justify-content:space-between; margin-top:10px;">
-                <b id="meu-id-txt">ID: ...</b>
-                <span onclick="toggleAgenda()" style="color:var(--orange); cursor:pointer;">▼ CONTATOS</span>
-            </div>
-        </div>
-
-        <div id="contacts-list" class="contacts-list"></div>
-
-        <div class="main-visor" id="visor">
-            <video id="video-remote" autoplay playsinline style="width:100%; height:100%; object-fit:cover;"></video>
-            <video id="video-local" autoplay playsinline muted style="width:80px; height:120px; position:absolute; top:10px; right:10px; display:none;"></video>
-        </div>
-
-        <div class="bottom-controls">
-            <div class="btn-call" onclick="chamarAmigo()"></div>
-            <div onclick="abrirPopup()" style="font-size:25px; cursor:pointer;">▲</div>
-            <div onclick="document.getElementById('img-input').click()" style="font-size:25px; cursor:pointer;">🖼️</div>
-            <input type="file" id="img-input" style="display:none" onchange="trocarFundo(event)">
-        </div>
+    <div class="actions-bar">
+        <div class="btn-call" onclick="fazerChamadaLivre()"></div>
+        <div class="btn-icon" onclick="salvarContato()">▲</div>
+        <div class="btn-icon" onclick="document.getElementById('img-input').click()">🖼️</div>
+        <input type="file" id="img-input" style="display:none" onchange="trocarFundo(event)">
     </div>
 
-    <div id="popup-salvar" style="position:absolute; bottom:-100%; left:0; width:100%; height:100%; background:#000; z-index:600; padding:20px; transition:0.3s;">
-        <span onclick="fecharPopup()" style="font-size:30px; cursor:pointer;">✕</span>
-        <h2>SALVAR NA NUVEM</h2>
-        <input type="text" id="save-nome" placeholder="Nome" style="width:100%; padding:10px; margin-bottom:10px;">
-        <input type="text" id="save-id" placeholder="ID" style="width:100%; padding:10px;">
-        <button onclick="salvarContato()" style="width:100%; padding:15px; margin-top:10px; background:var(--primary); color:white;">SALVAR</button>
+    <div class="visor" id="visor-bg">
+        <div id="list-contatos" class="contacts-list"></div>
+        <video id="video-remote" autoplay playsinline></video>
+        <video id="video-local" autoplay playsinline muted></video>
     </div>
 </div>
 
 <script>
     let peer, localStream;
-    let contatos = JSON.parse(localStorage.getItem('minha_agenda')) || [];
+    let contatos = JSON.parse(localStorage.getItem('agenda_webgpt')) || [];
 
-    function gerarID() {
-        document.getElementById('login-id').value = Math.floor(100000 + Math.random() * 800000);
-        document.getElementById('led-login').style.background = "var(--led-green)";
+    // Função do LED: Gera o ID e salva no navegador
+    function gerarIDUnico() {
+        const novoID = Math.floor(100000 + Math.random() * 800000);
+        document.getElementById('input-id').value = novoID;
+        document.getElementById('led-btn').classList.add('led-active');
+        localStorage.setItem('meu_id_logado', novoID);
     }
 
+    // Entrar: Inicia Câmera e PeerJS
     async function entrarNoSistema() {
-        const id = document.getElementById('login-id').value;
-        if(!id) return;
-        
-        localStream = await navigator.mediaDevices.getUserMedia({video:true, audio:true});
-        document.getElementById('video-local').srcObject = localStream;
-        document.getElementById('video-local').style.display = "block";
-        
-        peer = new Peer(id);
-        document.getElementById('meu-id-txt').innerText = "ID: " + id;
-        document.getElementById('screen-login').classList.remove('active-screen');
-        document.getElementById('screen-app').classList.add('active-screen');
-        
-        peer.on('call', call => {
-            call.answer(localStream);
-            call.on('stream', s => document.getElementById('video-remote').srcObject = s);
+        const id = document.getElementById('input-id').value;
+        if(!id) return alert("Clique no LED primeiro!");
+
+        try {
+            localStream = await navigator.mediaDevices.getUserMedia({video:true, audio:true});
+            document.getElementById('video-local').srcObject = localStream;
+            document.getElementById('video-local').style.display = 'block';
+
+            peer = new Peer(id);
+            document.getElementById('meu-id-txt').innerText = "MEU ID: " + id;
+            document.getElementById('screen-login').style.display = 'none';
+
+            // Escutar chamadas recebidas
+            peer.on('call', call => {
+                call.answer(localStream);
+                call.on('stream', s => document.getElementById('video-remote').srcObject = s);
+            });
+
+            renderizarAgenda();
+        } catch(e) {
+            alert("Erro: Permita o acesso à câmera!");
+        }
+    }
+
+    // Chamada Automática ao clicar no contato
+    function ligarPara(idAmigo) {
+        toggleAgenda(); // Fecha a lista
+        const call = peer.call(idAmigo, localStream);
+        call.on('stream', s => {
+            document.getElementById('video-remote').srcObject = s;
         });
-        renderizarAgenda();
     }
 
-    function chamarAmigo() {
-        const tid = document.getElementById('id-amigo').value;
-        const call = peer.call(tid, localStream);
-        call.on('stream', s => document.getElementById('video-remote').srcObject = s);
-    }
-
+    // Salvar novo amigo na agenda
     function salvarContato() {
-        const nome = document.getElementById('save-nome').value;
-        const id = document.getElementById('save-id').value;
-        contatos.push({nome, id});
-        localStorage.setItem('minha_agenda', JSON.stringify(contatos));
-        renderizarAgenda();
-        fecharPopup();
+        const nome = prompt("Nome do Amigo:");
+        const id = prompt("ID do Amigo:");
+        if(nome && id) {
+            contatos.push({nome, id});
+            localStorage.setItem('agenda_webgpt', JSON.stringify(contatos));
+            renderizarAgenda();
+            alert("Contato Salvo!");
+        }
     }
 
     function renderizarAgenda() {
-        const list = document.getElementById('contacts-list');
-        list.innerHTML = "";
-        contatos.forEach(c => {
-            const div = document.createElement('div');
-            div.className = "contact-item";
-            div.innerText = `${c.nome} (${c.id})`;
-            div.onclick = () => { 
-                document.getElementById('id-amigo').value = c.id; 
-                toggleAgenda();
-                chamarAmigo(); // CHAMADA AUTOMÁTICA
-            };
-            list.appendChild(div);
-        });
+        const lista = document.getElementById('list-contatos');
+        lista.innerHTML = contatos.map(c => `
+            <div class="contact-item" onclick="ligarPara('${c.id}')">
+                📞 LIGAR PARA: ${c.nome}
+            </div>
+        `).join('');
     }
 
     function toggleAgenda() {
-        const list = document.getElementById('contacts-list');
-        list.style.display = (list.style.display === "block") ? "none" : "block";
+        const div = document.getElementById('list-contatos');
+        div.style.display = (div.style.display === 'block') ? 'none' : 'block';
     }
 
-    function abrirPopup() { document.getElementById('popup-salvar').style.bottom = "0"; }
-    function fecharPopup() { document.getElementById('popup-salvar').style.bottom = "-100%"; }
+    function fazerChamadaLivre() {
+        const id = prompt("Digite o ID para ligar:");
+        if(id) ligarPara(id);
+    }
+
     function trocarFundo(e) {
         const reader = new FileReader();
-        reader.onload = ev => document.getElementById('visor').style.backgroundImage = `url('${ev.target.result}')`;
+        reader.onload = ev => {
+            document.getElementById('visor-bg').style.backgroundImage = `url('${ev.target.result}')`;
+            document.getElementById('visor-bg').style.backgroundSize = 'cover';
+        };
         reader.readAsDataURL(e.target.files[0]);
+    }
+
+    // Auto-login se já tiver ID salvo
+    window.onload = () => {
+        const salvo = localStorage.getItem('meu_id_logado');
+        if(salvo) {
+            document.getElementById('input-id').value = salvo;
+            document.getElementById('led-btn').classList.add('led-active');
+        }
     }
 </script>
 </body>
