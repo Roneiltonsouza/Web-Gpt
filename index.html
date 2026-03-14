@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Web GPT Pro</title>
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+    <style>
+        :root { --led-green: #00ff00; --bg: #0a0a0a; --primary: #800080; }
+        body { background: var(--bg); color: white; font-family: sans-serif; display: flex; justify-content: center; height: 100vh; margin: 0; overflow: hidden; }
+        .app-container { width: 100%; max-width: 400px; padding: 20px; text-align: center; }
+        .led { width: 60px; height: 60px; border-radius: 50%; background: #333; border: 3px solid #fff; margin: 20px auto; cursor: pointer; transition: 0.3s; }
+        .led.active { background: var(--led-green); box-shadow: 0 0 25px var(--led-green); }
+        .input-auth { width: 100%; padding: 15px; margin: 10px 0; border-radius: 12px; border: 1px solid #333; background: #111; color: white; text-align: center; box-sizing: border-box; }
+        .btn-auth { width: 100%; padding: 15px; border-radius: 12px; border: none; background: var(--primary); color: white; font-weight: bold; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    <h1>WEB GPT</h1>
+    <div id="led" class="led" onclick="ativarConta()"></div>
+    <p id="msg">CLIQUE NO LED PARA ATIVAR CONTA</p>
+    <input type="number" id="login-id" class="input-auth" placeholder="ID (10 DÍGITOS)">
+    <button class="btn-auth" onclick="realizarLogin()">LOGIN VALIDAÇÃO</button>
+</div>
+
+<script>
+    const API_KEY = "-OngH8WRkvXaOgMmFeZo";
+    const API_URL = "SUA_URL_DO_NETBASE"; // COLOQUE SUA URL AQUI
+
+    async function ativarConta() {
+        const id = Math.floor(1000000000 + Math.random() * 9000000000).toString();
+        const led = document.getElementById('led');
+        
+        try {
+            const res = await fetch(`${API_URL}/${id}.json?auth=${API_KEY}`, {
+                method: 'PUT',
+                body: JSON.stringify({ ativado: true, id: id })
+            });
+
+            if(res.ok) {
+                document.getElementById('login-id').value = id;
+                led.classList.add('active'); // LED SÓ FICA VERDE APÓS SUCESSO
+                document.getElementById('msg').innerText = "CONTA ATIVADA!";
+            } else {
+                alert("Erro: Servidor recusou a gravação.");
+            }
+        } catch(e) { alert("Erro de conexão com a API."); }
+    }
+
+    async function realizarLogin() {
+        const id = document.getElementById('login-id').value;
+        if(id.length !== 10) return alert("ID precisa ter 10 dígitos!");
+
+        const res = await fetch(`${API_URL}/${id}.json?auth=${API_KEY}`);
+        const data = await res.json();
+
+        if(data && data.ativado === true) {
+            alert("ACESSO LIBERADO: ID Válido.");
+            // Redirecionamento para o App principal aqui
+        } else {
+            alert("ACESSO NEGADO: ID não existe na nuvem.");
+        }
+    }
+</script>
+</body>
+</html>
