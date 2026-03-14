@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Web GPT - Com Toque</title>
+    <title>Web GPT - Vibração e Encerramento</title>
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <style>
         :root { --led-green: #00ff00; --bg: #000; --primary: #800080; --orange: #ffa500; }
@@ -23,8 +23,10 @@
         .contacts-list { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.98); z-index: 2000; display: none; overflow-y: auto; }
         .contact-item { padding: 20px; border-bottom: 1px solid #333; color: var(--orange); font-weight: bold; cursor: pointer; }
 
-        /* NOTIFICAÇÃO DE CHAMADA RECEBIDA */
+        /* NOTIFICAÇÃO E BOTAO ENCERRAR */
         #incoming-call { position: fixed; top: 20%; left: 5%; width: 90%; background: #222; border: 2px solid var(--primary); border-radius: 15px; padding: 20px; z-index: 6000; display: none; text-align: center; }
+        #btn-hangup { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); background: red; color: white; border: none; padding: 15px 30px; border-radius: 30px; font-weight: bold; z-index: 3000; display: none; cursor: pointer; border: 2px solid white; }
+        
         .btn-accept { background: green; color: white; padding: 15px; border: none; border-radius: 10px; font-weight: bold; margin: 10px; width: 100px; }
         .btn-reject { background: red; color: white; padding: 15px; border: none; border-radius: 10px; font-weight: bold; margin: 10px; width: 100px; }
     </style>
@@ -46,6 +48,8 @@
     <button class="btn-accept" onclick="atenderChamada()">ATENDER</button>
     <button class="btn-reject" onclick="recusarChamada()">RECUSAR</button>
 </div>
+
+<button id="btn-hangup" onclick="encerrarChamada()">ENCERRAR CHAMADA</button>
 
 <div class="app-container">
     <div class="header">
@@ -71,7 +75,7 @@
     const API_KEY = "OngH8WRkvXaOgMmFeZo";
     let autorizados = JSON.parse(localStorage.getItem('autorizados_' + API_KEY)) || [];
     let contatos = JSON.parse(localStorage.getItem('agenda_' + API_KEY)) || [];
-    let peer, localStream, currentCall;
+    let peer, localStream, currentCall, vibraInterval;
     const ringtone = document.getElementById('ringtone');
 
     function gerarIDUnico() {
@@ -82,7 +86,7 @@
         localStorage.setItem('autorizados_' + API_KEY, JSON.stringify(autorizados));
     }
 
-    async function entrarNoSistema() {
+    function entrarNoSistema() {
         const id = document.getElementById('input-id').value;
         if (!autorizados.includes(id)) return alert("ID NÃO AUTORIZADO");
         peer = new Peer(id);
@@ -92,26 +96,56 @@
         peer.on('call', call => {
             currentCall = call;
             document.getElementById('incoming-call').style.display = 'block';
-            document.getElementById('caller-id').innerText = "De: " + call.peer;
-            ringtone.play().catch(e => console.log("Aguardando interação para tocar"));
+            document.getElementById('caller-id').innerText = "ID: " + call.peer;
+            
+            // Tocar e Vibrar
+            ringtone.play().catch(() => {});
+            iniciarVibracao();
         });
         renderizarAgenda();
     }
 
-    async function atenderChamada() {
-        document.getElementById('incoming-call').style.display = 'none';
+    function iniciarVibracao() {
+        if ("vibrate" in navigator) {
+            vibraInterval = setInterval(() => {
+                navigator.vibrate([500, 300, 500]);
+            }, 1000);
+        }
+    }
+
+    function pararNotificacoes() {
         ringtone.pause();
         ringtone.currentTime = 0;
+        clearInterval(vibraInterval);
+        if ("vibrate" in navigator) navigator.vibrate(0);
+        document.getElementById('incoming-call').style.display = 'none';
+    }
+
+    async function atenderChamada() {
+        pararNotificacoes();
         await ativarCamera();
         currentCall.answer(localStream);
-        currentCall.on('stream', s => document.getElementById('video-remote').srcObject = s);
+        configurarChamada(currentCall);
     }
 
     function recusarChamada() {
-        document.getElementById('incoming-call').style.display = 'none';
-        ringtone.pause();
-        ringtone.currentTime = 0;
+        pararNotificacoes();
         currentCall.close();
+    }
+
+    function encerrarChamada() {
+        if(currentCall) currentCall.close();
+        document.getElementById('btn-hangup').style.display = 'none';
+        document.getElementById('video-remote').srcObject = null;
+    }
+
+    function configurarChamada(call) {
+        document.getElementById('btn-hangup').style.display = 'block';
+        call.on('stream', s => document.getElementById('video-remote').srcObject = s);
+        call.on('close', () => {
+            document.getElementById('btn-hangup').style.display = 'none';
+            document.getElementById('video-remote').srcObject = null;
+        });
     }
 
     async function ativarCamera() {
@@ -125,8 +159,8 @@
     async function ligarPara(idAmigo) {
         toggleAgenda();
         await ativarCamera();
-        const call = peer.call(idAmigo, localStream);
-        call.on('stream', s => document.getElementById('video-remote').srcObject = s);
+        currentCall = peer.call(idAmigo, localStream);
+        configurarChamada(currentCall);
     }
 
     function renderizarAgenda() {
@@ -162,7 +196,6 @@
         if(id) ligarPara(id);
     }
 
-    // Carregar fundo salvo
     window.onload = () => {
         const fundoSalvo = localStorage.getItem('fundo_' + API_KEY);
         if(fundoSalvo) document.getElementById('visor-container').style.backgroundImage = `url('${fundoSalvo}')`;
