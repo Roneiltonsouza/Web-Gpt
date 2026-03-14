@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Web GPT - Chamada Ativa</title>
+    <title>Web GPT - Com Toque</title>
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <style>
         :root { --led-green: #00ff00; --bg: #000; --primary: #800080; --orange: #ffa500; }
@@ -22,15 +22,29 @@
 
         .contacts-list { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.98); z-index: 2000; display: none; overflow-y: auto; }
         .contact-item { padding: 20px; border-bottom: 1px solid #333; color: var(--orange); font-weight: bold; cursor: pointer; }
+
+        /* NOTIFICAÇÃO DE CHAMADA RECEBIDA */
+        #incoming-call { position: fixed; top: 20%; left: 5%; width: 90%; background: #222; border: 2px solid var(--primary); border-radius: 15px; padding: 20px; z-index: 6000; display: none; text-align: center; }
+        .btn-accept { background: green; color: white; padding: 15px; border: none; border-radius: 10px; font-weight: bold; margin: 10px; width: 100px; }
+        .btn-reject { background: red; color: white; padding: 15px; border: none; border-radius: 10px; font-weight: bold; margin: 10px; width: 100px; }
     </style>
 </head>
 <body>
 
+<audio id="ringtone" loop src="https://assets.mixkit.co/active_storage/sfx/1358/1358-preview.mp3"></audio>
+
 <div id="screen-login">
     <h1 style="color:var(--primary)">WEB GPT</h1>
-    <div id="led-btn" style="width:50px; height:50px; border-radius:50%; border:2px solid #fff; background:#333; cursor:pointer;" onclick="gerarIDUnico()"></div>
+    <div id="led-btn" style="width:50px; height:50px; border-radius:50%; border:2px solid #fff; background:#333;" onclick="gerarIDUnico()"></div>
     <input type="number" id="input-id" style="width: 70%; padding: 10px; margin: 10px 0; background: #111; color: white; border: 1px solid #333; text-align: center;" placeholder="ID">
-    <button onclick="entrarNoSistema()" style="padding: 10px 30px; background:var(--primary); color:white; border:none; cursor:pointer;">ENTRAR</button>
+    <button onclick="entrarNoSistema()" style="padding: 10px 30px; background:var(--primary); color:white; border:none;">ENTRAR</button>
+</div>
+
+<div id="incoming-call">
+    <h2 style="color:var(--orange)">CHAMADA RECEBIDA...</h2>
+    <p id="caller-id"></p>
+    <button class="btn-accept" onclick="atenderChamada()">ATENDER</button>
+    <button class="btn-reject" onclick="recusarChamada()">RECUSAR</button>
 </div>
 
 <div class="app-container">
@@ -57,11 +71,8 @@
     const API_KEY = "OngH8WRkvXaOgMmFeZo";
     let autorizados = JSON.parse(localStorage.getItem('autorizados_' + API_KEY)) || [];
     let contatos = JSON.parse(localStorage.getItem('agenda_' + API_KEY)) || [];
-    let peer, localStream;
-
-    // Carrega fundo salvo
-    const fundoSalvo = localStorage.getItem('fundo_' + API_KEY);
-    if(fundoSalvo) document.getElementById('visor-container').style.backgroundImage = `url('${fundoSalvo}')`;
+    let peer, localStream, currentCall;
+    const ringtone = document.getElementById('ringtone');
 
     function gerarIDUnico() {
         const novoID = Math.floor(100000 + Math.random() * 800000);
@@ -78,20 +89,36 @@
         document.getElementById('meu-id-txt').innerText = "ID: " + id;
         document.getElementById('screen-login').style.display = 'none';
         
-        peer.on('call', async (call) => {
-            await ativarCamera();
-            call.answer(localStream);
-            call.on('stream', s => document.getElementById('video-remote').srcObject = s);
+        peer.on('call', call => {
+            currentCall = call;
+            document.getElementById('incoming-call').style.display = 'block';
+            document.getElementById('caller-id').innerText = "De: " + call.peer;
+            ringtone.play().catch(e => console.log("Aguardando interação para tocar"));
         });
         renderizarAgenda();
+    }
+
+    async function atenderChamada() {
+        document.getElementById('incoming-call').style.display = 'none';
+        ringtone.pause();
+        ringtone.currentTime = 0;
+        await ativarCamera();
+        currentCall.answer(localStream);
+        currentCall.on('stream', s => document.getElementById('video-remote').srcObject = s);
+    }
+
+    function recusarChamada() {
+        document.getElementById('incoming-call').style.display = 'none';
+        ringtone.pause();
+        ringtone.currentTime = 0;
+        currentCall.close();
     }
 
     async function ativarCamera() {
         if (!localStream) {
             localStream = await navigator.mediaDevices.getUserMedia({video:true, audio:true});
-            const vidLocal = document.getElementById('video-local');
-            vidLocal.srcObject = localStream;
-            vidLocal.style.display = 'block';
+            document.getElementById('video-local').srcObject = localStream;
+            document.getElementById('video-local').style.display = 'block';
         }
     }
 
@@ -134,6 +161,12 @@
         const id = prompt("ID para ligar:");
         if(id) ligarPara(id);
     }
+
+    // Carregar fundo salvo
+    window.onload = () => {
+        const fundoSalvo = localStorage.getItem('fundo_' + API_KEY);
+        if(fundoSalvo) document.getElementById('visor-container').style.backgroundImage = `url('${fundoSalvo}')`;
+    };
 </script>
 </body>
 </html>
