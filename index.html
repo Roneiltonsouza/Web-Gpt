@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Web GPT - Chamada Sob Demanda</title>
+    <title>Web GPT - Chamada Ativa</title>
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <style>
         :root { --led-green: #00ff00; --bg: #000; --primary: #800080; --orange: #ffa500; }
@@ -16,7 +16,7 @@
         .header { height: 40px; padding: 0 10px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #222; }
         .actions-bar { height: 45px; display: flex; justify-content: space-around; align-items: center; border-bottom: 1px solid #222; }
         
-        .visor { flex: 1; position: relative; background: #000; overflow: hidden; }
+        .visor { flex: 1; position: relative; background: #000; overflow: hidden; background-size: cover; background-position: center; }
         #video-remote { width: 100%; height: 100%; object-fit: cover; }
         #video-local { width: 80px; height: 110px; position: absolute; bottom: 10px; right: 10px; border: 1px solid white; z-index: 10; display: none; background: #222; }
 
@@ -42,6 +42,8 @@
     <div class="actions-bar">
         <div style="width:30px; height:30px; background:red; border-radius:50%; cursor:pointer;" onclick="fazerChamadaDireta()"></div>
         <div style="color:var(--orange); cursor:pointer;" onclick="salvarNovoContato()">▲ ADICIONAR</div>
+        <div style="cursor:pointer; font-size:20px;" onclick="document.getElementById('img-input').click()">🖼️</div>
+        <input type="file" id="img-input" style="display:none" onchange="trocarFundo(event)">
     </div>
 
     <div class="visor" id="visor-container">
@@ -55,9 +57,12 @@
     const API_KEY = "OngH8WRkvXaOgMmFeZo";
     let autorizados = JSON.parse(localStorage.getItem('autorizados_' + API_KEY)) || [];
     let contatos = JSON.parse(localStorage.getItem('agenda_' + API_KEY)) || [];
-    let peer, localStream, meuID;
+    let peer, localStream;
 
-    // Apenas prepara o ID, não abre câmera
+    // Carrega fundo salvo
+    const fundoSalvo = localStorage.getItem('fundo_' + API_KEY);
+    if(fundoSalvo) document.getElementById('visor-container').style.backgroundImage = `url('${fundoSalvo}')`;
+
     function gerarIDUnico() {
         const novoID = Math.floor(100000 + Math.random() * 800000);
         document.getElementById('input-id').value = novoID;
@@ -66,41 +71,37 @@
         localStorage.setItem('autorizados_' + API_KEY, JSON.stringify(autorizados));
     }
 
-    // Login simples (sem câmera)
-    function entrarNoSistema() {
+    async function entrarNoSistema() {
         const id = document.getElementById('input-id').value;
         if (!autorizados.includes(id)) return alert("ID NÃO AUTORIZADO");
-        meuID = id;
         peer = new Peer(id);
         document.getElementById('meu-id-txt').innerText = "ID: " + id;
         document.getElementById('screen-login').style.display = 'none';
         
-        // Listener para chamadas recebidas (ativa a câmera só se alguém ligar)
         peer.on('call', async (call) => {
-            await iniciarCamera();
+            await ativarCamera();
             call.answer(localStream);
             call.on('stream', s => document.getElementById('video-remote').srcObject = s);
         });
         renderizarAgenda();
     }
 
-    // Ativa câmera e microfone somente na chamada
-    async function iniciarCamera() {
+    async function ativarCamera() {
         if (!localStream) {
             localStream = await navigator.mediaDevices.getUserMedia({video:true, audio:true});
-            document.getElementById('video-local').srcObject = localStream;
-            document.getElementById('video-local').style.display = 'block';
+            const vidLocal = document.getElementById('video-local');
+            vidLocal.srcObject = localStream;
+            vidLocal.style.display = 'block';
         }
     }
 
     async function ligarPara(idAmigo) {
         toggleAgenda();
-        await iniciarCamera(); // Câmera só liga aqui
+        await ativarCamera();
         const call = peer.call(idAmigo, localStream);
         call.on('stream', s => document.getElementById('video-remote').srcObject = s);
     }
 
-    // Funções de apoio
     function renderizarAgenda() {
         document.getElementById('list-contatos').innerHTML = contatos.map(c => `<div class="contact-item" onclick="ligarPara('${c.id}')">📞 ${c.nome}</div>`).join('');
     }
@@ -118,6 +119,15 @@
             localStorage.setItem('agenda_' + API_KEY, JSON.stringify(contatos));
             renderizarAgenda();
         }
+    }
+
+    function trocarFundo(e) {
+        const reader = new FileReader();
+        reader.onload = ev => {
+            document.getElementById('visor-container').style.backgroundImage = `url('${ev.target.result}')`;
+            localStorage.setItem('fundo_' + API_KEY, ev.target.result);
+        };
+        reader.readAsDataURL(e.target.files[0]);
     }
 
     function fazerChamadaDireta() {
