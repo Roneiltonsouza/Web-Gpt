@@ -79,6 +79,11 @@
     const ringtone = document.getElementById('ringtone');
 
     window.onload = () => {
+        // Solicita permissão de notificação para ativar o Badge no ícone
+        if ("Notification" in window) {
+            Notification.requestPermission();
+        }
+
         const idSalvo = localStorage.getItem('ultimo_id_' + API_KEY);
         if (idSalvo) {
             document.getElementById('input-id').value = idSalvo;
@@ -101,12 +106,23 @@
         const id = document.getElementById('input-id').value;
         if (!autorizados.includes(id.toString())) return alert("ID NÃO AUTORIZADO");
         localStorage.setItem('ultimo_id_' + API_KEY, id);
+        
         peer = new Peer(id);
         document.getElementById('meu-id-txt').innerText = "ID: " + id;
         document.getElementById('screen-login').style.display = 'none';
         
         peer.on('call', call => {
             currentCall = call;
+            
+            // DISPARO DA NOTIFICAÇÃO SILENCIOSA (Para ativar o número no ícone)
+            if (Notification.permission === "granted") {
+                new Notification("Web GPT: Nova Chamada", {
+                    body: "ID: " + call.peer,
+                    silent: true, // Garante que não faça som se o app já estiver aberto
+                    tag: "call_badge" // Tag para evitar duplicidade
+                });
+            }
+
             document.getElementById('incoming-call').style.display = 'block';
             document.getElementById('caller-id').innerText = "De: " + call.peer;
             ringtone.play().catch(()=>{});
@@ -120,7 +136,7 @@
     function handleStart(e) { touchStartX = e.touches[0].clientX; }
     function handleEnd(e, index) {
         let deltaX = e.changedTouches[0].clientX - touchStartX;
-        if (deltaX < -80) { // Arrastou para a esquerda
+        if (deltaX < -80) { 
             if(confirm("Excluir este contato?")) {
                 contatos.splice(index, 1);
                 localStorage.setItem('agenda_' + API_KEY, JSON.stringify(contatos));
@@ -141,7 +157,6 @@
         `).join('');
     }
 
-    // --- CHAMADAS ---
     async function atenderChamada() {
         pararNotificacoes();
         await ativarCamera();
@@ -182,7 +197,6 @@
         vincularStream(currentCall);
     }
 
-    // --- UTILS ---
     function toggleAgenda() {
         const div = document.getElementById('list-contatos');
         div.style.display = (div.style.display === 'block') ? 'none' : 'block';
@@ -215,4 +229,4 @@
     function recusarChamada() { pararNotificacoes(); currentCall.close(); }
 </script>
 </body>
-</html>
+    </html>
