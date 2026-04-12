@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
@@ -15,68 +14,58 @@
 
         .app-main { display: flex; flex-direction: column; width: 100%; height: 100%; background: linear-gradient(180deg, #1e56a0 0%, #163e75 100%); position: relative; }
 
+        /* NOTCH E LABEL PERFIL */
+        .notch-area { display: flex; flex-direction: column; align-items: center; z-index: 10000; }
         .notch { 
             width: 150px; height: 40px; background: #000; 
             border-bottom-left-radius: 20px; border-bottom-right-radius: 20px; 
-            margin: 0 auto; z-index: 10000; overflow: hidden; border: 1px solid #333;
+            overflow: hidden; border: 1px solid #333;
             display: flex; align-items: center; justify-content: center; cursor: pointer;
         }
+        .label-perfil-notch { color: white; font-size: 11px; font-weight: bold; margin-top: 5px; text-shadow: 0 0 5px #000; }
+        
         #my-header-pic { width: 100%; height: 100%; object-fit: cover; display: none; }
 
         .header { height: 45px; padding: 0 15px; display: flex; align-items: flex-start; justify-content: space-between; position: absolute; top: 5px; width: 100%; z-index: 9000; }
         #meu-id-txt { color: var(--led-green); font-weight: bold; font-size: 0.75em; text-shadow: 0 0 5px #000; }
         .btn-engrenagem { font-size: 1.4em; text-shadow: 0 0 5px #000; cursor: pointer; }
 
-        .stories-bar { 
-            height: 90px; width: 100%; display: flex; justify-content: center; gap: 12px; 
-            overflow-x: auto; padding: 10px; padding-top: 50px;
-            background: rgba(0,0,0,0.2); scrollbar-width: none; z-index: 8000;
-        }
-        .story-circle { min-width: 55px; height: 55px; border-radius: 50%; border: 2px solid var(--led-blue); padding: 2px; flex-shrink: 0; }
-        .story-circle img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
-
-        .visor { flex: 1; position: relative; overflow: hidden; background-size: cover; background-position: center; }
+        .visor { flex: 1; position: relative; overflow: hidden; background-size: cover; background-position: center; margin-top: 20px;}
         
         /* TELA DE PERFIL EM TAMANHO REAL */
         #view-perfil-full { position: fixed; inset: 0; background: rgba(0,0,0,0.95); z-index: 50000; display: none; flex-direction: column; align-items: center; justify-content: center; }
-        #view-perfil-full img { width: 280px; height: 280px; border-radius: 20px; border: 3px solid var(--led-blue); object-fit: cover; box-shadow: 0 0 20px var(--primary); }
-        #nome-perfil-full { color: white; margin-top: 20px; font-size: 24px; font-weight: bold; text-transform: uppercase; }
+        #view-perfil-full img { width: 280px; height: 280px; border-radius: 20px; border: 3px solid var(--led-blue); object-fit: cover; }
+        #nome-perfil-real { color: white; margin-top: 20px; font-size: 24px; font-weight: bold; }
 
         #screen-login { position: fixed; inset: 0; background: #000; z-index: 20000; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; }
-        #led-generator { width: 100px; height: 100px; border-radius: 50%; border: 3px solid #fff; display: flex; align-items: center; justify-content: center; overflow: hidden; cursor: pointer; box-shadow: 0 0 15px var(--primary); }
+        #led-generator { width: 100px; height: 100px; border-radius: 50%; border: 3px solid #fff; display: flex; align-items: center; justify-content: center; overflow: hidden; cursor: pointer; }
         #preview-foto-login { width: 100%; height: 100%; object-fit: cover; }
 
         .dropdown-menu { position: absolute; top: 50px; left: 10px; background: rgba(0,0,0,0.95); border: 1px solid var(--primary); border-radius: 15px; width: 220px; display: none; z-index: 11000; }
         .dropdown-item { padding: 15px; border-bottom: 1px solid #222; color: var(--orange); font-size: 0.9em; font-weight: bold; }
-        .floating-contact { position: absolute; width: 120px; background: rgba(0,0,0,0.8); border-radius: 15px; padding: 10px; text-align: center; border: 1px solid var(--primary); z-index: 100; }
     </style>
 </head>
 <body>
 
 <div class="app-main">
-    <div class="notch" onclick="abrirPerfilReal()">
-        <img id="my-header-pic" src="">
-        <span id="label-notch-perfil" style="color:white; font-size:10px; font-weight:bold;">PERFIL</span>
+    <div class="notch-area">
+        <div class="notch" onclick="abrirPerfilReal()">
+            <img id="my-header-pic" src="">
+        </div>
+        <div class="label-perfil-notch">PERFIL</div>
     </div>
 
     <div class="header">
         <div class="btn-engrenagem" onclick="toggleMenu()">⚙️</div>
-        <div id="led-encerrar" style="display:none; color:var(--led-blue); font-weight:bold;" onclick="encerrarChamada()">ENCERRAR</div>
         <div id="meu-id-txt">ID: ...</div>
-    </div>
-
-    <div class="stories-bar" id="stories-container">
-        <div class="story-circle" style="border-style: dashed; display:flex; align-items:center; justify-content:center; color:white;" onclick="document.getElementById('story-input').click()">+</div>
     </div>
 
     <div class="visor" id="visor-container">
         <div id="list-contatos" style="display:none; position:absolute; inset:0; background:rgba(0,0,0,0.9); z-index:15000; padding:20px; overflow-y: auto;">
-             <button onclick="document.getElementById('list-contatos').style.display='none'" style="width:100%; padding:10px; background:red; color:white; border:none; border-radius:10px; margin-bottom:15px; font-weight:bold;">FECHAR AGENDA</button>
+             <button onclick="document.getElementById('list-contatos').style.display='none'" style="width:100%; padding:10px; background:red; color:white; border:none; border-radius:10px; margin-bottom:15px;">FECHAR</button>
              <div id="contatos-render"></div>
         </div>
         <div id="contatos-na-tela"></div>
-        <video id="video-remote" autoplay playsinline style="width:100%; height:100%; object-fit:cover;"></video>
-        <video id="video-local" autoplay playsinline muted style="width:80px; height:110px; position:absolute; top:10px; right:10px; border-radius:10px; border:2px solid var(--primary); display:none;"></video>
     </div>
 
     <div class="camera-footer" style="height:60px; display:flex; justify-content:center; align-items:center; background:rgba(0,0,0,0.5);">
@@ -87,12 +76,9 @@
 <div id="view-perfil-full" onclick="this.style.display='none'">
     <img id="img-perfil-real" src="">
     <div id="nome-perfil-real">NOME</div>
-    <button onclick="document.getElementById('my-photo-input').click()" style="margin-top:20px; padding:10px 20px; background:var(--primary); color:white; border:none; border-radius:10px;">MUDAR FOTO</button>
 </div>
 
 <input type="file" id="my-photo-input" accept="image/*" style="display:none" onchange="salvarFotoPerfil(this)">
-<input type="file" id="story-input" accept="image/*,video/*" style="display:none" onchange="uploadStory(this)">
-<input type="file" id="img-input" accept="image/*" style="display:none" onchange="trocarFundo(this)">
 
 <div id="screen-login">
     <h2 style="color:var(--primary)">WEB GPT PRO</h2>
@@ -100,19 +86,16 @@
         <img id="preview-foto-login" src="" style="display:none">
         <span id="txt-add" style="color:white; font-size:12px;">FOTO</span>
     </div>
-    <input type="text" id="input-nome" placeholder="SEU NOME" style="width:80%; padding:12px; margin-top:20px; border-radius:10px; border:1px solid var(--primary); background:#111; color:white; text-align:center;">
-    <input type="number" id="input-id" placeholder="DIGITE SEU ID" style="width:80%; padding:12px; margin-top:10px; border-radius:10px; border:none; background:#222; color:var(--led-green); text-align:center; font-weight:bold;">
-    <div style="display:flex; gap:10px; margin-top:15px;">
-        <button onclick="gerarIDUnico()" style="color:var(--orange); background:none; border:1px solid var(--orange); padding:5px 10px; border-radius:10px; font-size:12px;">GERAR NOVO ID</button>
-        <button onclick="verificarID()" style="color:var(--led-blue); background:none; border:1px solid var(--led-blue); padding:5px 10px; border-radius:10px; font-size:12px;">BUSCAR DADOS</button>
-    </div>
-    <button onclick="entrar()" style="width:80%; padding:15px; margin-top:30px; background:var(--primary); color:white; border:none; border-radius:15px; font-weight:bold;">ACESSAR SISTEMA</button>
+    <input type="text" id="input-nome" placeholder="NOME" style="width:80%; padding:12px; margin-top:20px; border-radius:10px; background:#111; color:white; border:1px solid var(--primary); text-align:center;">
+    <input type="number" id="input-id" oninput="buscarIDAutomatico(this.value)" placeholder="DIGITE SEU ID" style="width:80%; padding:12px; margin-top:10px; border-radius:10px; border:none; background:#222; color:var(--led-green); text-align:center; font-weight:bold;">
+    
+    <button onclick="gerarIDUnico()" style="margin-top:15px; background:none; border:1px solid var(--orange); color:var(--orange); padding:5px 15px; border-radius:10px;">GERAR NOVO ID</button>
+    <button onclick="entrar()" style="width:80%; padding:15px; margin-top:30px; background:var(--primary); color:white; border:none; border-radius:15px; font-weight:bold;">ACESSAR</button>
 </div>
 
 <div id="menu-dropdown" class="dropdown-menu">
     <div class="dropdown-item" onclick="abrirAgenda()">📂 CONTATOS</div>
-    <div class="dropdown-item" onclick="novoContato()">👤 ADICIONAR AMIGO (ID)</div>
-    <div class="dropdown-item" onclick="document.getElementById('img-input').click()">🖼️ MUDAR FUNDO</div>
+    <div class="dropdown-item" onclick="novoContato()">👤 ADICIONAR AMIGO</div>
     <div class="dropdown-item" style="color:red" onclick="toggleMenu()">✖ FECHAR</div>
 </div>
 
@@ -124,8 +107,29 @@
     const hardwareID = navigator.userAgent.replace(/\D/g, "") + screen.width;
     let meuID = "", meuNome = "", minhaFoto = "";
 
+    // BUSCA AUTOMÁTICA AO DIGITAR O ID
+    function buscarIDAutomatico(id) {
+        if(id.length < 3) return; 
+        database.ref('perfis/'+id).once('value', snap => {
+            if(snap.exists()) {
+                const d = snap.val();
+                document.getElementById('input-nome').value = d.nome;
+                if(d.foto) {
+                    minhaFoto = d.foto;
+                    const pre = document.getElementById('preview-foto-login');
+                    pre.src = d.foto;
+                    pre.style.display = 'block';
+                    document.getElementById('txt-add').style.display = 'none';
+                }
+                console.log("Dados carregados para o ID: " + id);
+            }
+        });
+    }
+
+    function gerarIDUnico() { document.getElementById('input-id').value = Math.floor(100000 + Math.random() * 900000); }
+
     function abrirPerfilReal() {
-        if(!minhaFoto) return alert("Adicione uma foto primeiro!");
+        if(!minhaFoto) return;
         document.getElementById('img-perfil-real').src = minhaFoto;
         document.getElementById('nome-perfil-real').innerText = meuNome;
         document.getElementById('view-perfil-full').style.display = 'flex';
@@ -140,8 +144,6 @@
             document.getElementById('txt-add').style.display = 'none';
             document.getElementById('my-header-pic').src = minhaFoto;
             document.getElementById('my-header-pic').style.display = 'block';
-            document.getElementById('label-notch-perfil').style.display = 'none';
-            if(meuID) database.ref('perfis/'+meuID).update({ foto: minhaFoto });
         };
         reader.readAsDataURL(input.files[0]);
     }
@@ -152,35 +154,27 @@
         if(!meuID || !meuNome) return alert("Preencha Nome e ID");
 
         const snap = await database.ref('perfis/'+meuID).once('value');
-        if(snap.exists() && snap.val().hw && snap.val().hw !== hardwareID) return alert("ERRO: ID em outro aparelho!");
-
-        if(snap.exists() && snap.val().foto) {
-            minhaFoto = snap.val().foto;
-            document.getElementById('my-header-pic').src = minhaFoto;
-            document.getElementById('my-header-pic').style.display = 'block';
-            document.getElementById('label-notch-perfil').style.display = 'none';
-        }
+        if(snap.exists() && snap.val().hw && snap.val().hw !== hardwareID) return alert("ID em outro dispositivo!");
 
         database.ref('perfis/'+meuID).update({ nome: meuNome, foto: minhaFoto, hw: hardwareID });
         document.getElementById('screen-login').style.display = 'none';
         document.getElementById('meu-id-txt').innerText = "ID: " + meuID;
+        if(minhaFoto) {
+            document.getElementById('my-header-pic').src = minhaFoto;
+            document.getElementById('my-header-pic').style.display = 'block';
+        }
         sincronizarContatos();
     }
 
-    // SALVAR CONTATOS AUTOMATICAMENTE
     function novoContato() {
-        const idAmigo = prompt("Digite o ID do amigo:");
+        const idAmigo = prompt("ID do amigo:");
         if(!idAmigo) return;
         database.ref('perfis/' + idAmigo).once('value', snap => {
             if(snap.exists()){
                 const d = snap.val();
-                database.ref('agenda/' + meuID + '/' + idAmigo).set({
-                    id: idAmigo,
-                    nome: d.nome,
-                    foto: d.foto || ""
-                });
-                alert("Amigo " + d.nome + " salvo automaticamente!");
-            } else { alert("ID não encontrado!"); }
+                database.ref('agenda/' + meuID + '/' + idAmigo).set({ id: idAmigo, nome: d.nome, foto: d.foto || "" });
+                alert("Salvo!");
+            }
         });
         toggleMenu();
     }
@@ -191,34 +185,13 @@
             render.innerHTML = "";
             snap.forEach(c => {
                 const con = c.val();
-                render.innerHTML += `
-                    <div style="display:flex; align-items:center; gap:10px; padding:15px; border-bottom:1px solid #222;" onclick="fixarNaTela('${con.nome}','${con.id}','${con.foto}')">
-                        <img src="${con.foto || 'https://via.placeholder.com/40'}" style="width:40px; height:40px; border-radius:50%; object-fit:cover;">
-                        <div>
-                            <div style="color:white; font-weight:bold;">${con.nome}</div>
-                            <div style="color:var(--led-green); font-size:10px;">ID: ${con.id}</div>
-                        </div>
-                    </div>`;
+                render.innerHTML += `<div style="padding:15px; border-bottom:1px solid #333; color:white;" onclick="fixarNaTela('${con.nome}','${con.id}','${con.foto}')">${con.nome}</div>`;
             });
         });
     }
 
-    function fixarNaTela(nome, id, foto) {
-        document.getElementById('list-contatos').style.display = 'none';
-        const card = document.createElement('div');
-        card.className = 'floating-contact';
-        card.style.top = "150px"; card.style.left = "20px";
-        card.innerHTML = `
-            <img src="${foto || 'https://via.placeholder.com/50'}" style="width:50px; height:50px; border-radius:50%; object-fit:cover;">
-            <div style="color:white; font-size:10px; margin:5px 0;">${nome}</div>
-            <button onclick="this.parentElement.remove()" style="background:none; border:none; color:red; font-size:10px;">REMOVER</button>
-        `;
-        document.getElementById('contatos-na-tela').appendChild(card);
-    }
-
     function toggleMenu() { const m = document.getElementById('menu-dropdown'); m.style.display = (m.style.display === 'block') ? 'none' : 'block'; }
     function abrirAgenda() { document.getElementById('list-contatos').style.display = 'block'; }
-    function gerarIDUnico() { document.getElementById('input-id').value = Math.floor(100000 + Math.random() * 900000); }
 </script>
 </body>
 </html>
