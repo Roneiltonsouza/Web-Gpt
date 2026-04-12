@@ -8,13 +8,13 @@
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
     <style>
-        :root { --led-green: #00ff00; --primary: #800080; --orange: #ffa500; --led-blue: #00fbff; }
+        :root { --led-green: #00ff00; --primary: #800080; --orange: #ffa500; --led-blue: #00fbff; --led-red: #ff0000; }
         * { box-sizing: border-box; touch-action: none; outline: none; -webkit-tap-highlight-color: transparent; }
         html, body { margin: 0; padding: 0; width: 100%; height: 100%; background: #000; font-family: sans-serif; overflow: hidden; position: fixed; }
 
         .app-main { display: flex; flex-direction: column; width: 100%; height: 100%; background: linear-gradient(180deg, #1e56a0 0%, #163e75 100%); position: relative; }
 
-        /* CABEÇALHO COM DEGRADÊ PRETO, BRANCO, LARANJA E ROXO */
+        /* CABEÇALHO */
         .notch-container { display: flex; flex-direction: column; align-items: center; z-index: 10000; }
         .notch { 
             width: 210px; height: 45px; 
@@ -24,6 +24,15 @@
             display: flex; align-items: center; justify-content: center; cursor: pointer;
             gap: 10px; padding: 0 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.5);
         }
+        
+        /* LED DE STATUS */
+        .led-status {
+            width: 8px; height: 8px; border-radius: 50%;
+            background: var(--led-red); box-shadow: 0 0 5px var(--led-red);
+            position: absolute; top: 5px; right: 25px;
+        }
+        .led-active { background: var(--led-green); box-shadow: 0 0 8px var(--led-green); }
+
         #header-pic-circle { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; border: 2px solid #000; }
         .info-notch { display: flex; flex-direction: column; }
         .label-perfil { color: #000; font-size: 11px; font-weight: bold; text-shadow: 1px 1px 0px rgba(255,255,255,0.5); }
@@ -36,7 +45,6 @@
             cursor: pointer; z-index: 9500; border: 1px solid var(--led-blue);
         }
 
-        /* AJUSTE DO VISOR PARA TELA CHEIA */
         .visor { flex: 1; position: relative; overflow: hidden; margin-top: 10px; }
         #video-remote { width: 100%; height: 100%; object-fit: cover; position: absolute; top: 0; left: 0; z-index: 1; }
         #video-local { width: 85px; height: 120px; position: absolute; top: 10px; right: 10px; border: 2px solid var(--primary); z-index: 100; display: none; border-radius: 12px; object-fit: cover; }
@@ -51,7 +59,6 @@
 
         .floating-contact { position: absolute; width: 110px; background: rgba(0,0,0,0.85); border-radius: 15px; padding: 10px; text-align: center; border: 1px solid var(--primary); z-index: 200; transition: transform 0.2s; }
         
-        /* CORREÇÃO: FOTO GRANDE NA TELA */
         .floating-img { 
             position: absolute; width: 100%; height: 100%; 
             top: 0; left: 0; z-index: 50; background: #000;
@@ -62,7 +69,9 @@
         .dropdown-menu { position: absolute; top: 130px; left: 0; background: rgba(0,0,0,0.95); border: 1px solid var(--primary); border-radius: 0 15px 15px 0; width: 200px; display: none; z-index: 11000; }
         .dropdown-item { padding: 15px; border-bottom: 1px solid #222; color: var(--orange); font-size: 0.9em; font-weight: bold; }
         #list-contatos { display:none; position:absolute; inset:0; background:rgba(0,0,0,0.98); z-index:15000; padding:20px; overflow-y: auto; }
+        
         #screen-login { position: fixed; inset: 0; background: #000; z-index: 20000; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; }
+        .btn-gen { background: none; border: 1px solid var(--led-blue); color: var(--led-blue); padding: 5px 10px; font-size: 10px; margin-top: 5px; border-radius: 5px; }
     </style>
 </head>
 <body>
@@ -70,6 +79,7 @@
 <div class="app-main">
     <div class="notch-container">
         <div class="notch" onclick="abrirConfigPerfil()">
+            <div id="led-ativo" class="led-status"></div>
             <img id="header-pic-circle" src="">
             <div class="info-notch">
                 <span class="label-perfil" id="label-nome-topo">PERFIL</span>
@@ -116,6 +126,7 @@
     </div>
     <input type="text" id="input-nome" placeholder="SEU NOME" style="width:80%; padding:12px; margin-top:20px; border-radius:10px; border:1px solid var(--primary); background:#111; color:white; text-align:center;">
     <input type="number" id="input-id" oninput="buscarDadosAuto(this.value)" placeholder="DIGITE SEU ID" style="width:80%; padding:12px; margin-top:10px; border-radius:10px; background:#222; color:var(--led-green); text-align:center; font-weight:bold;">
+    <button class="btn-gen" onclick="gerarIdUnico()">GERAR NOVO ID</button>
     <button onclick="entrar()" style="width:80%; padding:15px; margin-top:30px; background:var(--primary); color:white; border:none; border-radius:15px; font-weight:bold;">ACESSAR</button>
 </div>
 
@@ -129,13 +140,23 @@
     const database = firebase.database();
     let peer, localStream, currentCall, meuID = "", minhaFoto = "", meuNome = "";
 
+    function gerarIdUnico() {
+        const novoId = Math.floor(100000 + Math.random() * 900000);
+        document.getElementById('input-id').value = novoId;
+    }
+
     function buscarDadosAuto(id) {
         if(id.length < 3) return;
         database.ref('perfis/'+id).once('value', snap => {
             if(snap.exists()){
                 const d = snap.val();
                 document.getElementById('input-nome').value = d.nome;
-                if(d.foto) { minhaFoto = d.foto; document.getElementById('preview-foto-login').src = d.foto; document.getElementById('preview-foto-login').style.display = 'block'; document.getElementById('txt-add').style.display = 'none'; }
+                if(d.foto) { 
+                    minhaFoto = d.foto; 
+                    document.getElementById('preview-foto-login').src = d.foto; 
+                    document.getElementById('preview-foto-login').style.display = 'block'; 
+                    document.getElementById('txt-add').style.display = 'none'; 
+                }
             }
         });
     }
@@ -144,15 +165,39 @@
         meuID = document.getElementById('input-id').value;
         meuNome = document.getElementById('input-nome').value;
         if(!meuID || !meuNome) return alert("Preencha Nome e ID");
-        database.ref('perfis/'+meuID).update({ nome: meuNome, foto: minhaFoto });
+
+        // Checar se ID já está logado em outro lugar
+        const statusRef = database.ref('perfis/'+meuID+'/online');
+        const snap = await statusRef.once('value');
+        
+        if(snap.val() === true) {
+            alert("Este ID já está ativo em outro dispositivo!");
+            return;
+        }
+
+        // Marcar como online e configurar Peer
+        database.ref('perfis/'+meuID).update({ nome: meuNome, foto: minhaFoto, online: true });
+        // Garantir que ao fechar a aba, o status mude para offline
+        statusRef.onDisconnect().set(false);
+
         peer = new Peer(meuID);
+        
         peer.on('open', () => {
             document.getElementById('screen-login').style.display = 'none';
             document.getElementById('label-nome-topo').innerText = meuNome;
             document.getElementById('label-id-topo').innerText = "ID: " + meuID;
-            if(minhaFoto) { document.getElementById('header-pic-circle').src = minhaFoto; document.getElementById('header-pic-circle').style.display = 'block'; }
+            document.getElementById('led-ativo').classList.add('led-active'); // Ativa o LED
+            if(minhaFoto) { 
+                document.getElementById('header-pic-circle').src = minhaFoto; 
+                document.getElementById('header-pic-circle').style.display = 'block'; 
+            }
             ativarCamera(); sincronizarContatos();
         });
+
+        peer.on('error', err => {
+            if(err.type === 'unavailable-id') alert("Erro: ID já em uso!");
+        });
+
         peer.on('call', call => {
             if(confirm("Atender vídeo?")) {
                 call.answer(localStream);
@@ -162,7 +207,6 @@
         });
     }
 
-    /* CORREÇÃO: FOTO AGORA APARECE EM TELA CHEIA */
     function imgParaTela(input) {
         const reader = new FileReader();
         reader.onload = e => {
@@ -180,17 +224,26 @@
         document.getElementById('view-perfil-full').style.display = 'flex';
     }
     function fecharPerfil() { document.getElementById('view-perfil-full').style.display = 'none'; }
+    
     function processarFoto(input, modo) {
         const reader = new FileReader();
         reader.onload = e => {
             minhaFoto = e.target.result;
-            if(modo === 'login') { document.getElementById('preview-foto-login').src = minhaFoto; document.getElementById('preview-foto-login').style.display = 'block'; document.getElementById('txt-add').style.display = 'none'; }
-            else { document.getElementById('img-full-edit').src = minhaFoto; document.getElementById('header-pic-circle').src = minhaFoto; database.ref('perfis/'+meuID).update({ foto: minhaFoto }); }
+            if(modo === 'login') { 
+                document.getElementById('preview-foto-login').src = minhaFoto; 
+                document.getElementById('preview-foto-login').style.display = 'block'; 
+                document.getElementById('txt-add').style.display = 'none'; 
+            } else { 
+                document.getElementById('img-full-edit').src = minhaFoto; 
+                document.getElementById('header-pic-circle').src = minhaFoto; 
+                database.ref('perfis/'+meuID).update({ foto: minhaFoto }); 
+            }
         };
         reader.readAsDataURL(input.files[0]);
     }
 
     async function ativarCamera() { try { localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true }); document.getElementById('video-local').srcObject = localStream; document.getElementById('video-local').style.display = 'block'; } catch(e) {} }
+    
     function sincronizarContatos() {
         database.ref('agenda/' + meuID).on('value', snap => {
             const render = document.getElementById('contatos-render'); render.innerHTML = "";
@@ -202,6 +255,7 @@
             });
         });
     }
+
     function fixarNaTela(nome, id, foto) {
         document.getElementById('list-contatos').style.display = 'none';
         const card = document.createElement('div');
@@ -212,8 +266,22 @@
         card.ontouchmove = (e) => { if(e.touches[0].clientX - startX > 60) { card.style.transform = "translateX(250%)"; setTimeout(() => card.remove(), 200); } };
         document.getElementById('contatos-na-tela').appendChild(card);
     }
-    function novoContatoModal() { const n = prompt("Nome:"); const i = prompt("ID:"); if(n && i) database.ref('perfis/'+i).once('value', s => { const f = s.exists() ? s.val().foto : ""; database.ref('agenda/'+meuID+'/'+i).set({id:i, nome:n, foto:f}); }); toggleMenu(); }
-    function ligarPara(id) { const call = peer.call(id, localStream); call.on('stream', s => { document.getElementById('video-remote').srcObject = s; }); currentCall = call; }
+
+    function novoContatoModal() { 
+        const n = prompt("Nome:"); const i = prompt("ID:"); 
+        if(n && i) database.ref('perfis/'+i).once('value', s => { 
+            const f = s.exists() ? s.val().foto : ""; 
+            database.ref('agenda/'+meuID+'/'+i).set({id:i, nome:n, foto:f}); 
+        }); 
+        toggleMenu(); 
+    }
+
+    function ligarPara(id) { 
+        const call = peer.call(id, localStream); 
+        call.on('stream', s => { document.getElementById('video-remote').srcObject = s; }); 
+        currentCall = call; 
+    }
+
     function excluirContato(id) { if(confirm("Excluir?")) database.ref('agenda/'+meuID+'/'+id).remove(); }
     function toggleMenu() { const m = document.getElementById('menu-dropdown'); m.style.display = (m.style.display === 'block') ? 'none' : 'block'; }
     function abrirAgenda() { document.getElementById('list-contatos').style.display = 'block'; }
