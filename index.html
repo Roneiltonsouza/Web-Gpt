@@ -174,10 +174,12 @@
     const database = firebase.database();
     let peer, localStream, currentCall, meuID = "";
 
+    // 1. SISTEMA DE NOTIFICAÇÃO (BADGE)
     function setBadge(count) {
         if (window.AndroidBridge && window.AndroidBridge.showNotification) {
             window.AndroidBridge.showNotification(count);
         }
+        console.log("Badge atualizada para: " + count);
     }
 
     function toggleMenu() {
@@ -198,17 +200,19 @@
         if (!meuID) return alert("GERE UM ID NO LED!");
         localStorage.setItem('webgpt_id', meuID);
         
+        // Ativa a câmera no Android IMEDIATAMENTE ao entrar
+        await ativarCamera();
+
         peer = new Peer(meuID);
-        peer.on('open', async () => {
+        peer.on('open', () => {
             document.getElementById('screen-login').style.display = 'none';
             document.getElementById('meu-id-txt').innerText = "SEU ID: " + meuID;
-            await ativarCamera(); // Espera a câmera ligar antes de sincronizar
             sincronizarContatos();
         });
 
         peer.on('call', call => {
             currentCall = call;
-            setBadge(1);
+            setBadge(1); // Ativa badge no ícone do Android
             document.getElementById('incoming-call').style.display = 'flex';
             const audio = document.getElementById('ringtone');
             audio.src = localStorage.getItem('webgpt_toque') || "https://assets.mixkit.co/active_storage/sfx/1358/1358-preview.mp3";
@@ -216,27 +220,33 @@
         });
     }
 
+    // 2. SISTEMA DE PERMISSÃO DE CÂMERA ROBUSTO
     async function ativarCamera() {
         try {
             if(!localStream) {
-                localStream = await navigator.mediaDevices.getUserMedia({video: true, audio: true});
+                const constraints = { video: { facingMode: "user" }, audio: true };
+                localStream = await navigator.mediaDevices.getUserMedia(constraints);
             }
             const videoLocal = document.getElementById('video-local');
             videoLocal.srcObject = localStream;
             videoLocal.style.display = 'block';
-            videoLocal.play();
+            await videoLocal.play();
         } catch (err) {
-            console.error("Erro ao acessar câmera: ", err);
-            alert("A câmera não pôde ser ativada. Verifique as permissões.");
+            console.error("Erro Câmera: ", err);
+            alert("ERRO: Ative as permissões de câmera no Android para continuar.");
         }
     }
 
+    // 3. NOVO FLUXO DE CONTATO: NOME > ID > FOTO
     function novoContatoModal() {
         const nome = prompt("Nome do Amigo:");
+        if (!nome) return;
         const idAmigo = prompt("ID do Amigo:");
-        if (!nome || !idAmigo) return;
+        if (!idAmigo) return;
 
+        alert("Selecione agora a FOTO DE PERFIL de " + nome);
         const photoInput = document.getElementById('contact-photo-input');
+        
         photoInput.onchange = e => {
             const file = e.target.files[0];
             if (!file) return;
@@ -244,7 +254,10 @@
             reader.onload = ev => {
                 database.ref('contatos/' + meuID + '/' + idAmigo).set({
                     nome: nome, id: idAmigo, foto: ev.target.result
-                }).then(() => { alert("Salvo!"); toggleMenu(); });
+                }).then(() => { 
+                    alert("Salvo com sucesso!"); 
+                    toggleMenu(); 
+                });
             };
             reader.readAsDataURL(file);
         };
@@ -255,9 +268,13 @@
         database.ref('contatos/' + meuID).on('value', snap => {
             const data = snap.val();
             const render = document.getElementById('contatos-render');
-            render.innerHTML = Object.values(data || {}).map(c => `
+            if(!data) {
+                render.innerHTML = "<p style='color:gray;text-align:center;'>Nenhum contato.</p>";
+                return;
+            }
+            render.innerHTML = Object.values(data).map(c => `
                 <div style="display:flex; align-items:center; gap:15px; padding:15px; border-bottom:1px solid #333; color:white;" onclick="adicionarNaTela('${c.nome}','${c.id}','${c.foto}')">
-                    <img src="${c.foto || ''}" style="width:50px; height:50px; border-radius:50%; background:#444; object-fit:cover;">
+                    <img src="${c.foto || ''}" style="width:50px; height:50px; border-radius:50%; background:#444; object-fit:cover; border:1px solid var(--primary);">
                     <div><b>${c.nome}</b><br><small>ID: ${c.id}</small></div>
                 </div>
             `).join('');
@@ -291,9 +308,10 @@
         if(currentCall) currentCall.close();
         document.getElementById('video-remote').srcObject = null;
         document.getElementById('led-encerrar').style.display = 'none';
-        setBadge(0);
+        setBadge(0); // Limpa badge ao desligar
     }
 
+    // SLIDER DE ATENDER CHAMADA
     const slider = document.getElementById('slider');
     let startX = 0, moveX = 0;
     slider.onpointerdown = e => { startX = e.clientX; slider.setPointerCapture(e.pointerId); };
@@ -336,7 +354,11 @@
     
     window.onload = () => {
         const saved = localStorage.getItem('webgpt_id');
-        if(saved) { document.getElementById('input-id').value = saved; gerarIDUnico(); }
+        if(saved) { 
+            document.getElementById('input-id').value = saved; 
+            const led = document.getElementById('led-generator');
+            led.style.background = 'var(--led-green)';
+        }
     };
 </script>
 </body>
