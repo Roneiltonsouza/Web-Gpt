@@ -25,8 +25,8 @@
         .label-perfil { color: white; font-size: 11px; font-weight: bold; margin-top: 4px; text-shadow: 0 0 5px #000; }
 
         .header { height: 45px; padding: 0 15px; display: flex; align-items: flex-start; justify-content: space-between; position: absolute; top: 5px; width: 100%; z-index: 9000; }
-        #meu-id-txt { color: var(--led-green); font-weight: bold; font-size: 0.75em; text-shadow: 0 0 5px #000; }
-        .btn-engrenagem { font-size: 1.4em; text-shadow: 0 0 5px #000; cursor: pointer; }
+        #meu-id-txt { color: var(--led-green); font-weight: bold; font-size: 0.75em; text-shadow: 0 0 5px #000; margin-top: 5px; }
+        .btn-engrenagem { font-size: 1.4em; text-shadow: 0 0 5px #000; cursor: pointer; margin-top: 5px; }
 
         .stories-bar { 
             height: 90px; width: 100%; display: flex; justify-content: center; gap: 12px; 
@@ -38,18 +38,26 @@
 
         .visor { flex: 1; position: relative; overflow: hidden; background-size: cover; background-position: center; }
         
-        /* PERFIL TAMANHO REAL */
+        /* CÂMERA EM CIMA */
+        #video-remote { width: 100%; height: 100%; object-fit: cover; background: transparent; }
+        #video-local { 
+            width: 85px; height: 120px; position: absolute; 
+            top: 10px; right: 10px; border: 2px solid var(--primary); 
+            z-index: 10; display: none; border-radius: 12px; object-fit: cover;
+        }
+
         #view-perfil-full { position: fixed; inset: 0; background: rgba(0,0,0,0.95); z-index: 50000; display: none; flex-direction: column; align-items: center; justify-content: center; }
-        #view-perfil-full img { width: 280px; height: 280px; border-radius: 20px; border: 3px solid var(--led-blue); object-fit: cover; box-shadow: 0 0 20px var(--primary); }
-        #nome-perfil-full { color: white; margin-top: 15px; font-size: 22px; font-weight: bold; }
+        #view-perfil-full img { width: 280px; height: 280px; border-radius: 20px; border: 3px solid var(--led-blue); object-fit: cover; }
 
         #screen-login { position: fixed; inset: 0; background: #000; z-index: 20000; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; }
         #led-generator { width: 100px; height: 100px; border-radius: 50%; border: 3px solid #fff; display: flex; align-items: center; justify-content: center; overflow: hidden; cursor: pointer; }
         #preview-foto-login { width: 100%; height: 100%; object-fit: cover; }
 
         .dropdown-menu { position: absolute; top: 50px; left: 10px; background: rgba(0,0,0,0.95); border: 1px solid var(--primary); border-radius: 15px; width: 220px; display: none; z-index: 11000; }
-        .dropdown-item { padding: 15px; border-bottom: 1px solid #222; color: var(--orange); font-size: 0.9em; font-weight: bold; }
+        .dropdown-item { padding: 15px; border-bottom: 1px solid #222; color: var(--orange); font-size: 0.9em; font-weight: bold; cursor: pointer; }
         .floating-contact { position: absolute; width: 120px; background: rgba(0,0,0,0.8); border-radius: 15px; padding: 10px; text-align: center; border: 1px solid var(--primary); z-index: 100; }
+        
+        #list-contatos { display:none; position:absolute; inset:0; background:rgba(0,0,0,0.95); z-index:15000; padding:20px; overflow-y: auto; }
     </style>
 </head>
 <body>
@@ -64,37 +72,39 @@
 
     <div class="header">
         <div class="btn-engrenagem" onclick="toggleMenu()">⚙️</div>
-        <div id="led-encerrar" style="display:none; color:var(--led-blue); font-weight:bold;" onclick="encerrarChamada()">ENCERRAR</div>
+        <div id="led-encerrar" style="display:none; color:var(--led-blue); font-weight:bold; cursor:pointer;" onclick="encerrarChamada()">ENCERRAR</div>
         <div id="meu-id-txt">ID: ...</div>
     </div>
 
     <div class="stories-bar" id="stories-container">
-        <div class="story-circle" style="border-style: dashed; display:flex; align-items:center; justify-content:center; color:white;" onclick="document.getElementById('story-input').click()">+</div>
+        <div class="story-circle" style="border-style: dashed; display:flex; align-items:center; justify-content:center; color:white; cursor:pointer;" onclick="document.getElementById('story-input').click()">+</div>
     </div>
 
     <div class="visor" id="visor-container">
-        <div id="list-contatos" style="display:none; position:absolute; inset:0; background:rgba(0,0,0,0.9); z-index:15000; padding:20px; overflow-y: auto;">
-             <button onclick="document.getElementById('list-contatos').style.display='none'" style="width:100%; padding:10px; background:red; color:white; border:none; border-radius:10px; margin-bottom:15px; font-weight:bold;">FECHAR AGENDA</button>
+        <div id="list-contatos">
+             <button onclick="document.getElementById('list-contatos').style.display='none'" style="width:100%; padding:15px; background:red; color:white; border:none; border-radius:10px; margin-bottom:15px; font-weight:bold;">VOLTAR</button>
              <div id="contatos-render"></div>
         </div>
         
         <div id="contatos-na-tela"></div>
-        <video id="video-remote" autoplay playsinline style="width:100%; height:100%; object-fit:cover;"></video>
-        <video id="video-local" autoplay playsinline muted style="width:80px; height:110px; position:absolute; top:10px; right:10px; border-radius:10px; border:2px solid var(--primary); display:none;"></video>
+        <video id="video-remote" autoplay playsinline></video>
+        <video id="video-local" autoplay playsinline muted></video>
     </div>
 
     <div class="camera-footer" style="height:60px; display:flex; justify-content:center; align-items:center; background:rgba(0,0,0,0.5);">
-        <div style="width:50px; height:35px; background:#b30000; border-radius:8px; border:2px solid #500;" onclick="abrirAgenda()"></div>
+        <div style="width:50px; height:35px; background:#b30000; border-radius:8px; border:2px solid #500; cursor:pointer;" onclick="abrirAgenda()"></div>
     </div>
 </div>
 
 <div id="view-perfil-full" onclick="this.style.display='none'">
     <img id="img-full" src="">
-    <div id="nome-perfil-full"></div>
 </div>
 
-<input type="file" id="my-photo-input" accept="image/*" style="display:none" onchange="salvarFotoPerfil(this)">
-<input type="file" id="story-input" accept="image/*,video/*" style="display:none">
+<div id="menu-dropdown" class="dropdown-menu">
+    <div class="dropdown-item" onclick="abrirAgenda()">📂 LISTA DE CONTATOS</div>
+    <div class="dropdown-item" onclick="novoContato()">👤 ADICIONAR AMIGO</div>
+    <div class="dropdown-item" style="color:red" onclick="toggleMenu()">✖ FECHAR</div>
+</div>
 
 <div id="screen-login">
     <h2 style="color:var(--primary)">WEB GPT PRO</h2>
@@ -103,25 +113,21 @@
         <span id="txt-add" style="color:white; font-size:12px;">FOTO</span>
     </div>
     <input type="text" id="input-nome" placeholder="SEU NOME" style="width:80%; padding:12px; margin-top:20px; border-radius:10px; border:1px solid var(--primary); background:#111; color:white; text-align:center;">
-    <input type="number" id="input-id" oninput="buscarDados(this.value)" placeholder="DIGITE SEU ID" style="width:80%; padding:12px; margin-top:10px; border-radius:10px; border:none; background:#222; color:var(--led-green); text-align:center; font-weight:bold;">
+    <input type="number" id="input-id" oninput="buscarDadosAutomatico(this.value)" placeholder="DIGITE SEU ID" style="width:80%; padding:12px; margin-top:10px; border-radius:10px; border:none; background:#222; color:var(--led-green); text-align:center; font-weight:bold;">
     <button onclick="entrar()" style="width:80%; padding:15px; margin-top:30px; background:var(--primary); color:white; border:none; border-radius:15px; font-weight:bold;">ACESSAR</button>
 </div>
 
-<div id="menu-dropdown" class="dropdown-menu">
-    <div class="dropdown-item" onclick="abrirAgenda()">📂 CONTATOS</div>
-    <div class="dropdown-item" onclick="novoContato()">👤 ADICIONAR AMIGO</div>
-    <div class="dropdown-item" style="color:red" onclick="toggleMenu()">✖ FECHAR</div>
-</div>
+<input type="file" id="my-photo-input" accept="image/*" style="display:none" onchange="salvarFotoPerfil(this)">
+<input type="file" id="story-input" accept="image/*" style="display:none">
 
 <script>
     const firebaseConfig = { apiKey: "AIzaJ4WY8pvL7cAgXIZpSkIDk1Oy4rbsb92mgNN", databaseURL: "https://netbase-cloud-default-rtdb.firebaseio.com/" };
     firebase.initializeApp(firebaseConfig);
     const database = firebase.database();
     
-    const hardwareID = navigator.userAgent.replace(/\D/g, "") + screen.width;
-    let meuID = "", minhaFoto = "", meuNome = "";
+    let peer, localStream, currentCall, meuID = "", minhaFoto = "", meuNome = "";
 
-    function buscarDados(id) {
+    function buscarDadosAutomatico(id) {
         if(id.length < 3) return;
         database.ref('perfis/'+id).once('value', snap => {
             if(snap.exists()){
@@ -137,11 +143,41 @@
         });
     }
 
-    function verPerfilFull() {
-        if(!minhaFoto) return;
-        document.getElementById('img-full').src = minhaFoto;
-        document.getElementById('nome-perfil-full').innerText = meuNome;
-        document.getElementById('view-perfil-full').style.display = 'flex';
+    async function entrar() {
+        meuID = document.getElementById('input-id').value;
+        meuNome = document.getElementById('input-nome').value;
+        if(!meuID || !meuNome) return alert("Preencha Nome e ID");
+
+        database.ref('perfis/'+meuID).update({ nome: meuNome, foto: minhaFoto });
+        
+        peer = new Peer(meuID);
+        peer.on('open', () => {
+            document.getElementById('screen-login').style.display = 'none';
+            document.getElementById('meu-id-txt').innerText = "ID: " + meuID;
+            if(minhaFoto) {
+                document.getElementById('my-header-pic').src = minhaFoto;
+                document.getElementById('my-header-pic').style.display = 'block';
+            }
+            sincronizarContatos();
+            ativarCamera();
+        });
+
+        peer.on('call', call => {
+            if(confirm("Atender ligação?")) {
+                call.answer(localStream);
+                call.on('stream', s => { document.getElementById('video-remote').srcObject = s; });
+                document.getElementById('led-encerrar').style.display = 'block';
+                currentCall = call;
+            }
+        });
+    }
+
+    async function ativarCamera() {
+        try {
+            localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+            document.getElementById('video-local').srcObject = localStream;
+            document.getElementById('video-local').style.display = 'block';
+        } catch(e) { console.log("Erro câmera"); }
     }
 
     function salvarFotoPerfil(input) {
@@ -151,41 +187,8 @@
             document.getElementById('preview-foto-login').src = minhaFoto;
             document.getElementById('preview-foto-login').style.display = 'block';
             document.getElementById('txt-add').style.display = 'none';
-            document.getElementById('my-header-pic').src = minhaFoto;
-            document.getElementById('my-header-pic').style.display = 'block';
         };
         reader.readAsDataURL(input.files[0]);
-    }
-
-    async function entrar() {
-        meuID = document.getElementById('input-id').value;
-        meuNome = document.getElementById('input-nome').value;
-        if(!meuID || !meuNome) return alert("Preencha Nome e ID");
-
-        const snap = await database.ref('perfis/'+meuID).once('value');
-        if(snap.exists() && snap.val().hw && snap.val().hw !== hardwareID) return alert("ID em outro celular!");
-
-        database.ref('perfis/'+meuID).update({ nome: meuNome, foto: minhaFoto, hw: hardwareID });
-        document.getElementById('screen-login').style.display = 'none';
-        document.getElementById('meu-id-txt').innerText = "ID: " + meuID;
-        if(minhaFoto) {
-            document.getElementById('my-header-pic').src = minhaFoto;
-            document.getElementById('my-header-pic').style.display = 'block';
-        }
-        sincronizarContatos();
-    }
-
-    function novoContato() {
-        const idAmigo = prompt("ID do amigo:");
-        if(!idAmigo) return;
-        database.ref('perfis/' + idAmigo).once('value', snap => {
-            if(snap.exists()){
-                const d = snap.val();
-                database.ref('agenda/' + meuID + '/' + idAmigo).set({ id: idAmigo, nome: d.nome, foto: d.foto || "" });
-                alert("Amigo " + d.nome + " adicionado!");
-            }
-        });
-        toggleMenu();
     }
 
     function sincronizarContatos() {
@@ -194,9 +197,9 @@
             render.innerHTML = "";
             snap.forEach(c => {
                 const con = c.val();
-                render.innerHTML += `<div style="display:flex; align-items:center; gap:10px; padding:12px; border-bottom:1px solid #222;" onclick="fixarNaTela('${con.nome}','${con.id}','${con.foto}')">
+                render.innerHTML += `<div style="display:flex; align-items:center; gap:10px; padding:15px; border-bottom:1px solid #333; color:white;" onclick="fixarNaTela('${con.nome}','${con.id}','${con.foto}')">
                     <img src="${con.foto}" style="width:40px; height:40px; border-radius:50%; object-fit:cover;">
-                    <div style="color:white; font-weight:bold;">${con.nome}</div></div>`;
+                    <div>${con.nome}</div></div>`;
             });
         });
     }
@@ -205,13 +208,41 @@
         document.getElementById('list-contatos').style.display = 'none';
         const card = document.createElement('div');
         card.className = 'floating-contact';
-        card.style.top = "150px"; card.style.left = "20px";
-        card.innerHTML = `<img src="${foto}" style="width:50px; height:50px; border-radius:50%; object-fit:cover;"><div style="color:white; font-size:10px; margin:5px 0;">${nome}</div><button onclick="this.parentElement.remove()" style="color:red; background:none; border:none; font-size:10px;">REMOVER</button>`;
+        card.style.top = "100px"; card.style.left = "20px";
+        card.innerHTML = `<img src="${foto}" style="width:50px; height:50px; border-radius:50%; object-fit:cover;"><div style="color:white; font-size:10px;">${nome}</div>
+        <button onclick="ligarPara('${id}')" style="background:var(--led-green); border:none; border-radius:5px; margin-top:5px; padding:3px 10px; font-weight:bold;">LIGAR</button>`;
         document.getElementById('contatos-na-tela').appendChild(card);
+    }
+
+    function ligarPara(id) {
+        document.getElementById('led-encerrar').style.display = 'block';
+        const call = peer.call(id, localStream);
+        call.on('stream', s => { document.getElementById('video-remote').srcObject = s; });
+        currentCall = call;
+    }
+
+    function encerrarChamada() {
+        if(currentCall) currentCall.close();
+        document.getElementById('video-remote').srcObject = null;
+        document.getElementById('led-encerrar').style.display = 'none';
+    }
+
+    function verPerfilFull() {
+        if(!minhaFoto) return;
+        document.getElementById('img-full').src = minhaFoto;
+        document.getElementById('view-perfil-full').style.display = 'flex';
     }
 
     function toggleMenu() { const m = document.getElementById('menu-dropdown'); m.style.display = (m.style.display === 'block') ? 'none' : 'block'; }
     function abrirAgenda() { document.getElementById('list-contatos').style.display = 'block'; }
+    
+    function novoContato() {
+        const idA = prompt("ID do amigo:");
+        if(idA) database.ref('perfis/'+idA).once('value', s => {
+            if(s.exists()) database.ref('agenda/'+meuID+'/'+idA).set({id:idA, nome:s.val().nome, foto:s.val().foto});
+        });
+        toggleMenu();
+    }
 </script>
 </body>
-    </html>
+</html>
