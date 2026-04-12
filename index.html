@@ -3,95 +3,168 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Web GPT Oficial</title>
+    <title>Web GPT Pro - Full Screen</title>
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
     <style>
-        :root { --led-green: #00ff00; --primary: #800080; --orange: #ffa500; --led-blue: #00fbff; }
+        :root { 
+            --led-green: #00ff00; 
+            --primary: #800080; 
+            --orange: #ffa500; 
+            --led-blue: #00fbff;
+            --ios-blue: #007AFF;
+        }
+        
         * { box-sizing: border-box; touch-action: none; outline: none; -webkit-tap-highlight-color: transparent; }
-        
-        html, body { margin: 0; padding: 0; background: #000; color: white; font-family: sans-serif; height: 100vh; width: 100vw; overflow: hidden; }
-        .app-container { display: flex; flex-direction: column; height: 100vh; width: 100vw; }
-        
-        /* CABEÇALHO */
-        .header { height: 45px; padding: 0 10px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #222; background: #050505; z-index: 3000; }
-        
-        #led-encerrar { display: none; align-items: center; gap: 8px; cursor: pointer; animation: pulseBlue 1s infinite; }
-        .led-circle { width: 10px; height: 10px; background: var(--led-blue); border-radius: 50%; box-shadow: 0 0 10px var(--led-blue); }
-        .led-text { color: var(--led-blue); font-size: 0.7em; font-weight: bold; }
+        html, body { 
+            margin: 0; padding: 0; width: 100%; height: 100%; 
+            background: #000; font-family: -apple-system, sans-serif; 
+            overflow: hidden; position: fixed; 
+        }
 
-        @keyframes pulseBlue { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
+        .app-main {
+            display: flex; flex-direction: column;
+            width: 100%; height: 100%;
+            background: linear-gradient(180deg, #1e56a0 0%, #163e75 100%);
+            position: relative;
+        }
 
-        /* TELA DE CHAMADA RECEBIDA (SLIDE) */
+        .notch { 
+            width: 120px; height: 30px; background: #000; 
+            border-radius: 15px; margin: 10px auto 0; 
+            z-index: 10000; display: flex; align-items: center; justify-content: center;
+        }
+
+        #screen-login { 
+            position: fixed; inset: 0; background: #000; 
+            z-index: 20000; display: flex; flex-direction: column; 
+            align-items: center; justify-content: center; padding: 20px;
+        }
+        #led-generator { 
+            width: 80px; height: 80px; border-radius: 50%; border: 4px solid #fff; 
+            background: #333; cursor: pointer; transition: 0.3s; 
+            box-shadow: 0 0 15px rgba(255,255,255,0.2); 
+        }
+
+        .header { 
+            height: 50px; padding: 0 15px; 
+            display: flex; align-items: center; justify-content: space-between; 
+            z-index: 9000; margin-top: 5px;
+        }
+
+        .visor { 
+            flex: 1; position: relative; width: 100%; 
+            background-size: cover; background-position: center; overflow: hidden; 
+        }
+        #video-remote { width: 100%; height: 100%; object-fit: cover; background: transparent; }
+        #video-local { 
+            width: 90px; height: 130px; position: absolute; 
+            top: 10px; right: 10px; border: 2px solid var(--primary); 
+            z-index: 10; display: none; border-radius: 15px; object-fit: cover;
+            background: #222;
+        }
+
+        .camera-footer { 
+            height: 80px; width: 100%; 
+            background: rgba(0,0,0,0.4); backdrop-filter: blur(10px);
+            display: flex; justify-content: center; align-items: center; 
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+        .camera-icon {
+            width: 65px; height: 45px; background-color: #b30000;
+            border-radius: 12px; display: flex; justify-content: center; align-items: center;
+            box-shadow: 0 4px 0 #800000, 0 8px 15px rgba(0,0,0,0.5);
+            border: 2px solid #800000; cursor: pointer;
+        }
+        .camera-icon::after { content: ''; width: 22px; height: 22px; background: radial-gradient(circle, #333, #000); border-radius: 50%; border: 2px solid #d4d4d4; }
+
+        .dropdown-menu { 
+            position: absolute; top: 55px; left: 15px; 
+            background: rgba(15,15,15,0.95); border: 1px solid var(--primary); 
+            border-radius: 15px; width: 250px; display: none; z-index: 11000; 
+        }
+        .dropdown-item { padding: 15px; border-bottom: 1px solid #333; color: var(--orange); font-weight: bold; font-size: 0.9em; cursor: pointer; }
+
+        #list-contatos { 
+            position: absolute; inset: 0; background: rgba(0,0,0,0.98); 
+            z-index: 12000; display: none; padding: 20px; overflow-y: auto; 
+        }
+
+        .floating-contact { 
+            position: absolute; top: 20px; left: 20px; width: 130px; 
+            background: rgba(0,0,0,0.7); border: 1px solid var(--primary); 
+            border-radius: 20px; padding: 10px; text-align: center;
+        }
+
         #incoming-call { 
-            position: fixed; inset: 0; background: rgba(0,0,0,0.95); z-index: 7000; 
-            display: none; flex-direction: column; align-items: center; justify-content: center; 
+            position: fixed; inset: 0; background: rgba(0,0,0,0.95); 
+            z-index: 30000; display: none; flex-direction: column; 
+            align-items: center; justify-content: center; 
         }
-        .caller-info { font-size: 1.5em; color: var(--orange); margin-bottom: 50px; font-weight: bold; }
-        
-        .slide-container { 
-            width: 280px; height: 70px; background: #222; border-radius: 40px; 
-            position: relative; display: flex; align-items: center; justify-content: center;
-            border: 2px solid #333; overflow: hidden;
+        .slide-area { 
+            width: 280px; height: 70px; background: #1a1a1a; 
+            border-radius: 35px; position: relative; display: flex; 
+            align-items: center; justify-content: center; 
         }
-        .slide-text { font-size: 0.8em; color: #555; pointer-events: none; }
         .slide-btn { 
-            width: 60px; height: 60px; background: red; border-radius: 50%; 
-            position: absolute; left: 5px; cursor: pointer; display: flex; 
-            align-items: center; justify-content: center; font-weight: bold;
-            box-shadow: 0 0 15px rgba(255,0,0,0.5); z-index: 10;
+            width: 60px; height: 60px; background: var(--led-green); 
+            border-radius: 50%; position: absolute; left: 5px; 
+            display: flex; align-items: center; justify-content: center; font-size: 24px; 
         }
-
-        /* VISOR E CÂMERA */
-        .visor { flex: 1; position: relative; background-size: cover; background-position: center; overflow: hidden; }
-        #video-remote { width: 100%; height: 100%; object-fit: cover; }
-        #video-local { width: 85px; height: 115px; position: absolute; top: 15px; right: 15px; border: 1px solid var(--primary); z-index: 10; display: none; border-radius: 10px; }
-
-        .actions-bar { height: 50px; display: flex; justify-content: space-around; align-items: center; background: #0a0a0a; border-top: 1px solid #222; }
-        #screen-login { position: fixed; inset: 0; background: #000; z-index: 8000; display: flex; flex-direction: column; justify-content: center; align-items: center; }
     </style>
 </head>
 <body>
 
-<audio id="ringtone" loop src="https://assets.mixkit.co/active_storage/sfx/1358/1358-preview.mp3"></audio>
+<audio id="ringtone" loop></audio>
+<input type="file" id="ringtone-input" accept="audio/*" style="display:none" onchange="carregarToque(this)">
+<input type="file" id="contact-photo-input" accept="image/*" style="display:none">
 
-<div id="screen-login">
-    <h1 style="color:var(--primary)">WEB GPT</h1>
-    <div id="led-btn" style="width:60px; height:60px; border-radius:50%; border:3px solid #fff; background:#333;" onclick="gerarIDUnico()"></div>
-    <input type="number" id="input-id" style="width: 70%; padding: 15px; margin: 20px 0; background: #111; color: white; border: 1px solid var(--primary); text-align: center; border-radius: 10px;" placeholder="SEU ID">
-    <button onclick="entrarNoSistema()" style="padding: 15px 40px; background:var(--primary); color:white; border:none; border-radius:10px;">ENTRAR</button>
-</div>
+<div class="app-main">
+    <div class="notch"></div>
 
-<div id="incoming-call">
-    <div class="caller-info" id="caller-name">CARREGANDO...</div>
-    <div class="slide-container" id="slide-area">
-        <span class="slide-text">◄ RECUSAR | ATENDER ►</span>
-        <div class="slide-btn" id="slider">📞</div>
+    <div id="screen-login">
+        <h1 style="color:var(--primary); margin-bottom: 30px;">WEB GPT</h1>
+        <div id="led-generator" onclick="gerarIDUnico()"></div>
+        <p style="color: #666; margin-top: 15px; font-size: 0.8em;">TOQUE NO LED PARA GERAR SEU ID</p>
+        <input type="number" id="input-id" readonly style="width:80%; padding:18px; margin:30px; background:#111; color:white; border:1px solid var(--primary); border-radius:15px; text-align:center; font-size: 1.5em;">
+        <button onclick="entrarNoSistema()" style="width:80%; padding: 18px; background:var(--primary); color:white; border:none; border-radius:15px; font-weight: bold; font-size: 1.1em;">ENTRAR NO SISTEMA</button>
     </div>
-</div>
 
-<div class="app-container">
     <div class="header">
-        <div onclick="toggleMenu()" style="cursor:pointer; width:30px;">📱</div>
-        <div id="led-encerrar" onclick="encerrarChamada()">
-            <div class="led-circle"></div>
-            <span class="led-text">ENCERRAR LIGAÇÃO</span>
+        <div onclick="toggleMenu()" style="font-size:1.8em; cursor:pointer;">⚙️</div>
+        <div id="meu-id-txt" style="color:var(--led-green); font-weight:bold; font-size:0.9em;">ID: ...</div>
+        <div id="led-encerrar" style="display:none; color:var(--led-blue); font-weight:bold; font-size:0.8em;" onclick="encerrarChamada()">ENCERRAR</div>
+        
+        <div id="menu-dropdown" class="dropdown-menu">
+            <div class="dropdown-item" onclick="abrirAgenda()">📂 LISTA DE CONTATOS</div>
+            <div class="dropdown-item" onclick="novoContatoModal()">👤 ADICIONAR AMIGO</div>
+            <div class="dropdown-item" onclick="document.getElementById('ringtone-input').click()">🎵 MUDAR TOQUE</div>
+            <div class="dropdown-item" onclick="document.getElementById('img-input').click()">🖼️ MUDAR FUNDO</div>
+            <div class="dropdown-item" style="color:red;" onclick="toggleMenu()">✖ FECHAR MENU</div>
+            <input type="file" id="img-input" accept="image/*" style="display:none" onchange="trocarFundo(this)">
         </div>
-        <div style="color:var(--primary); font-weight:bold;">WEB GPT</div>
-        <div id="meu-id-txt" style="color:var(--led-green); font-size: 0.7em; font-weight:bold;">ID: ...</div>
     </div>
 
     <div class="visor" id="visor-container">
-        <div id="list-contatos" style="position:absolute; inset:0; background:rgba(0,0,0,0.9); z-index:2500; display:none; padding:20px; touch-action: pan-y;"></div>
+        <div id="list-contatos">
+            <button onclick="document.getElementById('list-contatos').style.display='none'" style="width:100%; padding:15px; background:red; border:none; border-radius:12px; color:white; font-weight:bold; margin-bottom:20px;">VOLTAR PARA O VISOR</button>
+            <div id="contatos-render"></div>
+        </div>
         <div id="contatos-na-tela"></div>
         <video id="video-remote" autoplay playsinline></video>
         <video id="video-local" autoplay playsinline muted></video>
     </div>
 
-    <div class="actions-bar">
-        <div onclick="document.getElementById('img-input').click()" style="font-size: 1.5em; cursor:pointer;">🖼️</div>
-        <input type="file" id="img-input" accept="image/*" style="display:none" onchange="trocarFundo(this)">
+    <div class="camera-footer">
+        <div class="camera-icon" onclick="abrirAgenda()"></div>
+    </div>
+</div>
+
+<div id="incoming-call">
+    <h2 id="caller-name" style="color:white; margin-bottom:50px;">LIGAÇÃO...</h2>
+    <div class="slide-area">
+        <div class="slide-btn" id="slider">📞</div>
     </div>
 </div>
 
@@ -99,113 +172,172 @@
     const firebaseConfig = { apiKey: "AIzaJ4WY8pvL7cAgXIZpSkIDk1Oy4rbsb92mgNN", databaseURL: "https://netbase-cloud-default-rtdb.firebaseio.com/" };
     firebase.initializeApp(firebaseConfig);
     const database = firebase.database();
-
     let peer, localStream, currentCall, meuID = "";
 
-    window.onload = () => {
-        const idSalvo = localStorage.getItem('webgpt_id');
-        if (idSalvo) document.getElementById('input-id').value = idSalvo;
-        const img = localStorage.getItem('webgpt_bg_img');
-        if (img) document.getElementById('visor-container').style.backgroundImage = `url('${img}')`;
-        initSlider();
-    };
-
-    function initSlider() {
-        const slider = document.getElementById('slider');
-        const area = document.getElementById('slide-area');
-        let startX = 0, currentX = 0;
-
-        slider.onpointerdown = e => { startX = e.clientX; slider.setPointerCapture(e.pointerId); };
-        slider.onpointermove = e => {
-            if (startX === 0) return;
-            currentX = e.clientX - startX;
-            
-            // Limites do slider
-            if (currentX < -100) currentX = -100; // Recusar
-            if (currentX > 210) currentX = 210; // Atender
-
-            slider.style.transform = `translateX(${currentX}px)`;
-
-            // Efeito visual: fica verde se for para a direita
-            if (currentX > 0) {
-                let ratio = currentX / 210;
-                slider.style.background = `rgb(${255 - (255 * ratio)}, ${255 * ratio}, 0)`;
-            } else {
-                slider.style.background = 'red';
-            }
-        };
-
-        slider.onpointerup = () => {
-            if (currentX >= 180) { // ATENDER
-                atenderChamada();
-            } else if (currentX <= -80) { // RECUSAR
-                recusarChamada();
-            }
-            // Reseta posição
-            startX = 0; currentX = 0;
-            slider.style.transform = 'translateX(0)';
-            slider.style.background = 'red';
-        };
+    function setBadge(count) {
+        if (window.AndroidBridge && window.AndroidBridge.showNotification) {
+            window.AndroidBridge.showNotification(count);
+        }
     }
 
-    async function entrarNoSistema() {
-        meuID = document.getElementById('input-id').value;
-        if (!meuID) return;
-        localStorage.setItem('webgpt_id', meuID);
-        peer = new Peer(meuID);
-        peer.on('open', () => {
-            document.getElementById('screen-login').style.display = 'none';
-            document.getElementById('meu-id-txt').innerText = "ID: " + meuID;
-            ativarCamera();
-        });
-        peer.on('call', call => {
-            currentCall = call;
-            document.getElementById('caller-name').innerText = "CHAMADA DE: " + call.peer;
-            document.getElementById('incoming-call').style.display = 'flex';
-            document.getElementById('ringtone').play();
-        });
-    }
-
-    async function ativarCamera() {
-        if(!localStream) localStream = await navigator.mediaDevices.getUserMedia({video:true, audio:true});
-        document.getElementById('video-local').srcObject = localStream;
-        document.getElementById('video-local').style.display = 'block';
-    }
-
-    async function atenderChamada() {
-        document.getElementById('ringtone').pause();
-        document.getElementById('incoming-call').style.display = 'none';
-        document.getElementById('led-encerrar').style.display = 'flex';
-        await ativarCamera();
-        currentCall.answer(localStream);
-        currentCall.on('stream', s => document.getElementById('video-remote').srcObject = s);
-    }
-
-    function recusarChamada() {
-        if(currentCall) currentCall.close();
-        document.getElementById('incoming-call').style.display = 'none';
-        document.getElementById('ringtone').pause();
-    }
-
-    function encerrarChamada() {
-        if(currentCall) currentCall.close();
-        document.getElementById('led-encerrar').style.display = 'none';
-        document.getElementById('video-remote').srcObject = null;
+    function toggleMenu() {
+        const m = document.getElementById('menu-dropdown');
+        m.style.display = (m.style.display === 'block') ? 'none' : 'block';
     }
 
     function gerarIDUnico() {
         const id = Math.floor(100000 + Math.random() * 800000).toString();
         document.getElementById('input-id').value = id;
+        const led = document.getElementById('led-generator');
+        led.style.background = 'var(--led-green)';
+        led.style.boxShadow = '0 0 30px var(--led-green)';
     }
 
-    function trocarFundo(input) {
-        const r = new FileReader();
-        r.onload = e => {
-            document.getElementById('visor-container').style.backgroundImage = `url('${e.target.result}')`;
-            localStorage.setItem('webgpt_bg_img', e.target.result);
-        };
-        r.readAsDataURL(input.files[0]);
+    async function entrarNoSistema() {
+        meuID = document.getElementById('input-id').value;
+        if (!meuID) return alert("GERE UM ID NO LED!");
+        localStorage.setItem('webgpt_id', meuID);
+        
+        peer = new Peer(meuID);
+        peer.on('open', async () => {
+            document.getElementById('screen-login').style.display = 'none';
+            document.getElementById('meu-id-txt').innerText = "SEU ID: " + meuID;
+            await ativarCamera(); // Espera a câmera ligar antes de sincronizar
+            sincronizarContatos();
+        });
+
+        peer.on('call', call => {
+            currentCall = call;
+            setBadge(1);
+            document.getElementById('incoming-call').style.display = 'flex';
+            const audio = document.getElementById('ringtone');
+            audio.src = localStorage.getItem('webgpt_toque') || "https://assets.mixkit.co/active_storage/sfx/1358/1358-preview.mp3";
+            audio.play().catch(() => {});
+        });
     }
+
+    async function ativarCamera() {
+        try {
+            if(!localStream) {
+                localStream = await navigator.mediaDevices.getUserMedia({video: true, audio: true});
+            }
+            const videoLocal = document.getElementById('video-local');
+            videoLocal.srcObject = localStream;
+            videoLocal.style.display = 'block';
+            videoLocal.play();
+        } catch (err) {
+            console.error("Erro ao acessar câmera: ", err);
+            alert("A câmera não pôde ser ativada. Verifique as permissões.");
+        }
+    }
+
+    function novoContatoModal() {
+        const nome = prompt("Nome do Amigo:");
+        const idAmigo = prompt("ID do Amigo:");
+        if (!nome || !idAmigo) return;
+
+        const photoInput = document.getElementById('contact-photo-input');
+        photoInput.onchange = e => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = ev => {
+                database.ref('contatos/' + meuID + '/' + idAmigo).set({
+                    nome: nome, id: idAmigo, foto: ev.target.result
+                }).then(() => { alert("Salvo!"); toggleMenu(); });
+            };
+            reader.readAsDataURL(file);
+        };
+        photoInput.click();
+    }
+
+    function sincronizarContatos() {
+        database.ref('contatos/' + meuID).on('value', snap => {
+            const data = snap.val();
+            const render = document.getElementById('contatos-render');
+            render.innerHTML = Object.values(data || {}).map(c => `
+                <div style="display:flex; align-items:center; gap:15px; padding:15px; border-bottom:1px solid #333; color:white;" onclick="adicionarNaTela('${c.nome}','${c.id}','${c.foto}')">
+                    <img src="${c.foto || ''}" style="width:50px; height:50px; border-radius:50%; background:#444; object-fit:cover;">
+                    <div><b>${c.nome}</b><br><small>ID: ${c.id}</small></div>
+                </div>
+            `).join('');
+        });
+    }
+
+    function adicionarNaTela(nome, id, foto) {
+        document.getElementById('list-contatos').style.display = 'none';
+        const card = document.createElement('div');
+        card.className = 'floating-contact';
+        card.innerHTML = `
+            <img src="${foto || ''}" style="width:60px; height:60px; border-radius:50%; background:#444; border:2px solid var(--primary); object-fit:cover;">
+            <div style="color:white; font-size:0.8em; margin:5px 0;">${nome}</div>
+            <button onclick="ligarPara('${id}')" style="background:var(--led-green); border:none; width:100%; border-radius:8px; padding:5px; font-weight:bold;">LIGAR</button>
+        `;
+        document.getElementById('contatos-na-tela').appendChild(card);
+    }
+
+    async function ligarPara(id) {
+        if(!localStream) await ativarCamera();
+        document.getElementById('led-encerrar').style.display = 'block';
+        currentCall = peer.call(id, localStream);
+        currentCall.on('stream', s => {
+            const remoteVid = document.getElementById('video-remote');
+            remoteVid.srcObject = s;
+            remoteVid.play();
+        });
+    }
+
+    function encerrarChamada() {
+        if(currentCall) currentCall.close();
+        document.getElementById('video-remote').srcObject = null;
+        document.getElementById('led-encerrar').style.display = 'none';
+        setBadge(0);
+    }
+
+    const slider = document.getElementById('slider');
+    let startX = 0, moveX = 0;
+    slider.onpointerdown = e => { startX = e.clientX; slider.setPointerCapture(e.pointerId); };
+    slider.onpointermove = e => {
+        if (startX === 0) return;
+        moveX = e.clientX - startX;
+        if(moveX < 0) moveX = 0; if(moveX > 210) moveX = 210;
+        slider.style.transform = `translateX(${moveX}px)`;
+    };
+    slider.onpointerup = async () => {
+        if(moveX >= 180) {
+            document.getElementById('ringtone').pause();
+            document.getElementById('incoming-call').style.display = 'none';
+            if(!localStream) await ativarCamera();
+            currentCall.answer(localStream);
+            currentCall.on('stream', s => {
+                const remoteVid = document.getElementById('video-remote');
+                remoteVid.srcObject = s;
+                remoteVid.play();
+            });
+            setBadge(0);
+        }
+        startX = 0; moveX = 0;
+        slider.style.transform = 'translateX(0)';
+    };
+
+    function carregarToque(i) {
+        const r = new FileReader();
+        r.onload = e => localStorage.setItem('webgpt_toque', e.target.result);
+        r.readAsDataURL(i.files[0]);
+    }
+
+    function trocarFundo(i) {
+        const r = new FileReader();
+        r.onload = e => document.getElementById('visor-container').style.backgroundImage = `url('${e.target.result}')`;
+        r.readAsDataURL(i.files[0]);
+    }
+
+    function abrirAgenda() { document.getElementById('list-contatos').style.display = 'block'; }
+    
+    window.onload = () => {
+        const saved = localStorage.getItem('webgpt_id');
+        if(saved) { document.getElementById('input-id').value = saved; gerarIDUnico(); }
+    };
 </script>
 </body>
 </html>
