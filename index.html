@@ -14,7 +14,6 @@
 
         .app-main { display: flex; flex-direction: column; width: 100%; height: 100%; background: linear-gradient(180deg, #1e56a0 0%, #163e75 100%); position: relative; }
 
-        /* CABEÇALHO ORIGINAL */
         .notch-container { display: flex; flex-direction: column; align-items: center; z-index: 10000; }
         .notch { 
             width: 210px; height: 45px; 
@@ -61,12 +60,21 @@
         .dropdown-item { padding: 15px; border-bottom: 1px solid #222; color: var(--orange); font-size: 0.9em; font-weight: bold; }
         #list-contatos { display:none; position:absolute; inset:0; background:rgba(0,0,0,0.98); z-index:15000; padding:20px; overflow-y: auto; }
         
-        /* LOGIN SCREEN COM NOVO BOTÃO */
         #screen-login { position: fixed; inset: 0; background: #000; z-index: 20000; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; }
         .btn-gerar { background: none; border: 1px dashed var(--led-blue); color: var(--led-blue); font-size: 11px; padding: 8px; margin-top: 5px; border-radius: 8px; cursor: pointer; width: 80%; }
+
+        /* INTERFACE DE CHAMADA RECEBIDA */
+        #incoming-screen { position: fixed; inset: 0; background: rgba(0,0,0,0.95); z-index: 60000; display: none; flex-direction: column; align-items: center; justify-content: space-around; padding: 40px 20px; }
+        .slider-container { width: 280px; height: 75px; background: #222; border-radius: 40px; position: relative; display: flex; align-items: center; border: 2px solid #444; overflow: hidden; }
+        .slider-btn { width: 65px; height: 65px; background: var(--led-green); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; cursor: pointer; position: absolute; left: 5px; z-index: 2; }
+        .slider-text { width: 100%; text-align: center; color: white; font-size: 12px; font-weight: bold; letter-spacing: 1px; opacity: 0.6; }
     </style>
 </head>
-<body>
+<body onload="verificarAutoPreenchimento()">
+
+<audio id="ringtone" loop>
+    <source src="https://assets.mixkit.co/active_storage/sfx/1358/1358-preview.mp3" type="audio/mpeg">
+</audio>
 
 <div class="app-main">
     <div class="notch-container">
@@ -111,6 +119,20 @@
     <button onclick="entrar()" style="width:80%; padding:15px; margin-top:20px; background:var(--primary); color:white; border:none; border-radius:15px; font-weight:bold;">ACESSAR</button>
 </div>
 
+<div id="incoming-screen">
+    <div style="text-align: center;">
+        <img id="caller-photo" src="" style="width: 130px; height: 130px; border-radius: 50%; border: 4px solid var(--led-green); object-fit: cover; background: #333;">
+        <h2 id="caller-name" style="color: white; margin-top: 20px; font-size: 24px;">Chamada...</h2>
+    </div>
+
+    <div class="slider-container" id="slider-track">
+        <div class="slider-text">ARRASTE PARA ATENDER</div>
+        <div id="slider-handle" class="slider-btn">📞</div>
+    </div>
+
+    <button onclick="recusarChamada()" style="background: #ff0000; color: white; border: none; width: 80%; padding: 18px; border-radius: 40px; font-weight: bold; font-size: 16px;">DESLIGAR</button>
+</div>
+
 <input type="file" id="my-photo-input" accept="image/*" style="display:none" onchange="processarFoto(this, 'login')">
 <input type="file" id="change-photo-input" accept="image/*" style="display:none" onchange="processarFoto(this, 'edit')">
 <input type="file" id="gallery-to-screen" accept="image/*" style="display:none" onchange="imgParaTela(this)">
@@ -133,8 +155,19 @@
     firebase.initializeApp(firebaseConfig);
     const database = firebase.database();
     let peer, localStream, currentCall, meuID = "", minhaFoto = "", meuNome = "";
+    let ringtone = document.getElementById('ringtone');
 
-    // LÓGICA DE IDENTIFICAÇÃO DO APARELHO
+    // AUTO-PREENCHIMENTO LOCAL
+    function verificarAutoPreenchimento() {
+        const idSalvo = localStorage.getItem('last_id');
+        const nomeSalvo = localStorage.getItem('last_nome');
+        if(idSalvo) {
+            document.getElementById('input-id').value = idSalvo;
+            buscarDadosAuto(idSalvo);
+        }
+        if(nomeSalvo) document.getElementById('input-nome').value = nomeSalvo;
+    }
+
     function getDeviceFingerprint() {
         let key = localStorage.getItem('netbase_device_id');
         if (!key) {
@@ -172,7 +205,10 @@
         meuNome = document.getElementById('input-nome').value;
         if(!meuID || !meuNome) return alert("Preencha Nome e ID");
 
-        // VERIFICA SE O ID JÁ ESTÁ EM OUTRO DISPOSITIVO
+        // Salva localmente para facilitar login
+        localStorage.setItem('last_id', meuID);
+        localStorage.setItem('last_nome', meuNome);
+
         database.ref('perfis/' + meuID).once('value', snap => {
             const user = snap.val();
             if (user && user.fingerprint && user.fingerprint !== myFingerprint) {
@@ -180,7 +216,6 @@
                 return;
             }
 
-            // Salva/Vincula o ID ao aparelho
             database.ref('perfis/'+meuID).update({ 
                 nome: meuNome, 
                 foto: minhaFoto, 
@@ -196,16 +231,66 @@
                 ativarCamera(); sincronizarContatos();
             });
 
+            // LOGICA DE RECEBER CHAMADA
             peer.on('call', call => {
-                if(confirm("Atender vídeo?")) {
-                    call.answer(localStream);
-                    call.on('stream', s => { document.getElementById('video-remote').srcObject = s; });
-                    currentCall = call;
-                }
+                incomingCallInterface(call);
             });
         });
     }
 
+    function incomingCallInterface(call) {
+        ringtone.play();
+        if (navigator.vibrate) navigator.vibrate([500, 300, 500, 300, 500]);
+        
+        document.getElementById('incoming-screen').style.display = 'flex';
+        database.ref('perfis/' + call.peer).once('value', s => {
+            if(s.exists()){
+                document.getElementById('caller-name').innerText = s.val().nome;
+                document.getElementById('caller-photo').src = s.val().foto;
+            }
+        });
+
+        // SLIDER LOGIC
+        const handle = document.getElementById('slider-handle');
+        const track = document.getElementById('slider-track');
+        let isMoving = false;
+
+        handle.ontouchstart = () => isMoving = true;
+        handle.ontouchmove = (e) => {
+            if(!isMoving) return;
+            let x = e.touches[0].clientX - track.getBoundingClientRect().left - 32;
+            if(x < 5) x = 5;
+            if(x > 210) x = 210;
+            handle.style.left = x + "px";
+            if(x >= 205) {
+                isMoving = false;
+                atender(call);
+            }
+        };
+        handle.ontouchend = () => { isMoving = false; handle.style.left = "5px"; };
+    }
+
+    function atender(call) {
+        pararToque();
+        document.getElementById('incoming-screen').style.display = 'none';
+        call.answer(localStream);
+        call.on('stream', s => { document.getElementById('video-remote').srcObject = s; });
+        currentCall = call;
+    }
+
+    function recusarChamada() {
+        pararToque();
+        document.getElementById('incoming-screen').style.display = 'none';
+        if(currentCall) currentCall.close();
+    }
+
+    function pararToque() {
+        ringtone.pause();
+        ringtone.currentTime = 0;
+        if(navigator.vibrate) navigator.vibrate(0);
+    }
+
+    // ... RESTANTE DAS FUNÇÕES ORIGINAIS ...
     function imgParaTela(input) {
         const reader = new FileReader();
         reader.onload = e => {
@@ -265,7 +350,6 @@
         card.className = 'floating-contact';
         card.style.top = "150px"; card.style.left = "30px";
         card.innerHTML = `<img src="${foto}" style="width:50px; height:50px; border-radius:50%; object-fit:cover;"><div style="color:white; font-size:10px;">${nome}</div><button onclick="ligarPara('${id}')" style="background:var(--led-green); border:none; border-radius:5px; padding:3px 8px; font-weight:bold; font-size:9px;">LIGAR</button>`;
-        
         let startX = 0; card.ontouchstart = (e) => startX = e.touches[0].clientX;
         card.ontouchmove = (e) => { if(e.touches[0].clientX - startX > 60) { card.style.transform = "translateX(250%)"; setTimeout(() => card.remove(), 200); } };
         document.getElementById('contatos-na-tela').appendChild(card);
