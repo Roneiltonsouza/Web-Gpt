@@ -3,254 +3,248 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Web GPT Pro - Full Screen</title>
+    <title>Web GPT Pro - Stories</title>
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
     <style>
-        :root { 
-            --led-green: #00ff00; 
-            --primary: #800080; 
-            --orange: #ffa500; 
-            --led-blue: #00fbff;
-        }
-        
+        :root { --led-green: #00ff00; --primary: #800080; --orange: #ffa500; --led-blue: #00fbff; }
         * { box-sizing: border-box; touch-action: none; outline: none; -webkit-tap-highlight-color: transparent; }
-        html, body { 
-            margin: 0; padding: 0; width: 100%; height: 100%; 
-            background: #000; font-family: -apple-system, sans-serif; 
-            overflow: hidden; position: fixed; 
-        }
+        html, body { margin: 0; padding: 0; width: 100%; height: 100%; background: #000; font-family: sans-serif; overflow: hidden; position: fixed; }
 
-        .app-main {
-            display: flex; flex-direction: column;
-            width: 100%; height: 100%;
-            background: linear-gradient(180deg, #1e56a0 0%, #163e75 100%);
-            position: relative;
-        }
+        .app-main { display: flex; flex-direction: column; width: 100%; height: 100%; background: linear-gradient(180deg, #1e56a0 0%, #163e75 100%); position: relative; }
 
-        /* BARRA PRETA (NOTCH) COM FOTO */
+        /* CABEÇALHO TELA DE FOTO */
         .notch { 
-            width: 140px; height: 35px; background: #000; 
+            width: 150px; height: 40px; background: #000; 
             border-bottom-left-radius: 20px; border-bottom-right-radius: 20px; 
-            margin: 0 auto; z-index: 10000; 
+            margin: 0 auto; z-index: 10000; overflow: hidden; border: 1px solid #333;
             display: flex; align-items: center; justify-content: center;
-            overflow: hidden; border: 1px solid #333;
         }
-        #my-header-pic { width: 30px; height: 30px; border-radius: 50%; object-fit: cover; border: 1px solid var(--led-green); display: none; }
+        #my-header-pic { width: 100%; height: 100%; object-fit: cover; display: none; }
 
-        #screen-login { 
-            position: fixed; inset: 0; background: #000; 
-            z-index: 20000; display: flex; flex-direction: column; 
-            align-items: center; justify-content: center; padding: 20px;
+        .header { height: 45px; padding: 0 15px; display: flex; align-items: flex-start; justify-content: space-between; position: absolute; top: 5px; width: 100%; z-index: 9000; }
+        #meu-id-txt { color: var(--led-green); font-weight: bold; font-size: 0.75em; text-shadow: 0 0 5px #000; }
+        .btn-engrenagem { font-size: 1.4em; text-shadow: 0 0 5px #000; cursor: pointer; }
+
+        /* STORIES BAR */
+        .stories-bar { 
+            height: 90px; width: 100%; display: flex; gap: 10px; 
+            overflow-x: auto; padding: 10px; padding-top: 50px;
+            background: rgba(0,0,0,0.2); scrollbar-width: none;
         }
+        .story-circle { 
+            min-width: 60px; height: 60px; border-radius: 50%; 
+            border: 2px solid var(--led-blue); padding: 2px; flex-shrink: 0;
+        }
+        .story-circle img, .story-circle video { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
+
+        .visor { flex: 1; position: relative; overflow: hidden; background-size: cover; background-position: center; }
         
-        #led-generator { 
-            width: 80px; height: 80px; border-radius: 50%; border: 4px solid #fff; 
-            background: #333; cursor: pointer; transition: 0.3s; 
-            box-shadow: 0 0 15px rgba(255,255,255,0.2); 
-            display: flex; align-items: center; justify-content: center; overflow: hidden;
-        }
-        #led-generator img { width: 100%; height: 100%; object-fit: cover; }
-        #led-generator.locked { border-color: var(--led-green); }
+        /* LOGIN SCREEN */
+        #screen-login { position: fixed; inset: 0; background: #000; z-index: 20000; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; }
+        #led-generator { width: 100px; height: 100px; border-radius: 50%; border: 3px solid #fff; display: flex; align-items: center; justify-content: center; overflow: hidden; cursor: pointer; }
+        #preview-foto-login { width: 100%; height: 100%; object-fit: cover; }
 
-        .header { 
-            height: 40px; padding: 0 15px; 
-            display: flex; align-items: center; justify-content: space-between; 
-            z-index: 9000; position: absolute; top: 0; width: 100%;
-        }
+        .dropdown-menu { position: absolute; top: 50px; left: 10px; background: rgba(0,0,0,0.95); border: 1px solid var(--primary); border-radius: 15px; width: 220px; display: none; z-index: 11000; }
+        .dropdown-item { padding: 15px; border-bottom: 1px solid #222; color: var(--orange); font-size: 0.9em; font-weight: bold; }
 
-        #led-encerrar {
-            cursor: pointer; animation: blinkBlue 1s infinite;
-            text-shadow: 0 0 10px var(--led-blue); font-weight: bold;
-        }
-
-        @keyframes blinkBlue { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
-
-        #meu-id-txt { cursor: pointer; color: var(--led-green); font-weight: bold; font-size: 0.8em; margin-top: 10px; }
-        .btn-engrenagem { font-size: 1.5em; cursor: pointer; margin-top: 10px; }
-
-        .visor { flex: 1; position: relative; width: 100%; background-size: cover; background-position: center; overflow: hidden; margin-top: 40px; }
-        #video-remote { width: 100%; height: 100%; object-fit: cover; background: transparent; }
-        #video-local { 
-            width: 90px; height: 130px; position: absolute; 
-            top: 10px; right: 10px; border: 2px solid var(--primary); 
-            z-index: 10; display: none; border-radius: 15px; object-fit: cover;
-        }
-
-        .btn-ligar-blink {
-            background: var(--led-green); border: none; width: 100%; 
-            border-radius: 8px; padding: 8px; font-weight: bold;
-            animation: pulseGreen 1.5s infinite;
-        }
-
-        @keyframes pulseGreen {
-            0% { box-shadow: 0 0 0 0 rgba(0, 255, 0, 0.7); }
-            70% { box-shadow: 0 0 0 10px rgba(0, 255, 0, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(0, 255, 0, 0); }
-        }
-
-        .camera-footer { height: 70px; width: 100%; background: rgba(0,0,0,0.6); display: flex; justify-content: center; align-items: center; }
-        .camera-icon { width: 60px; height: 40px; background: #b30000; border-radius: 10px; border: 2px solid #800000; cursor: pointer; }
-
-        .dropdown-menu { 
-            position: absolute; top: 50px; left: 10px; 
-            background: rgba(10,10,10,0.95); border: 1px solid var(--primary); 
-            border-radius: 15px; width: 220px; display: none; z-index: 11000; 
-        }
-        .dropdown-item { padding: 12px; border-bottom: 1px solid #222; color: var(--orange); font-size: 0.9em; cursor: pointer; }
-
-        #list-contatos { position: absolute; inset: 0; background: rgba(0,0,0,0.98); z-index: 12000; display: none; padding: 20px; overflow-y: auto; }
-        .floating-contact { position: absolute; top: 20px; left: 20px; width: 120px; background: rgba(0,0,0,0.7); border: 1px solid var(--primary); border-radius: 15px; padding: 10px; text-align: center; }
-
-        #incoming-call { position: fixed; inset: 0; background: rgba(0,0,0,0.95); z-index: 30000; display: none; flex-direction: column; align-items: center; justify-content: center; }
-        .slide-area { width: 260px; height: 60px; background: #1a1a1a; border-radius: 30px; position: relative; display: flex; align-items: center; }
-        .slide-btn { width: 50px; height: 50px; background: var(--led-green); border-radius: 50%; position: absolute; left: 5px; display: flex; align-items: center; justify-content: center; font-size: 20px; }
+        #story-viewer { position: fixed; inset: 0; background: #000; z-index: 40000; display: none; flex-direction: column; }
+        #story-content { width: 100%; height: 100%; object-fit: contain; }
     </style>
 </head>
 <body>
 
-<audio id="ringtone" loop></audio>
-<input type="file" id="my-photo-input" accept="image/*" style="display:none" onchange="previewMinhaFoto(this)">
-
 <div class="app-main">
     <div class="notch" onclick="document.getElementById('my-photo-input').click()">
-        <img id="my-header-pic" src="" alt="me">
-    </div>
-
-    <div id="screen-login">
-        <h1 style="color:var(--primary); margin-bottom: 10px;">WEB GPT</h1>
-        <div id="led-generator" onclick="document.getElementById('my-photo-input').click()">
-            <span id="led-placeholder" style="color:white; font-size: 2em;">+</span>
-            <img id="preview-foto-login" src="" style="display:none">
-        </div>
-        <p style="color: #888; margin-top: 10px; font-size: 0.7em;">CLIQUE NO CÍRCULO PARA FOTO</p>
-        
-        <input type="text" id="input-nome" placeholder="SEU NOME" style="width:80%; padding:15px; margin-top:20px; background:#111; color:white; border:1px solid var(--primary); border-radius:10px; text-align:center;">
-        <input type="number" id="input-id" readonly placeholder="ID GERADO" style="width:80%; padding:15px; margin-top:10px; background:#111; color:var(--led-green); border:1px solid #333; border-radius:10px; text-align:center; font-weight:bold;">
-        
-        <button onclick="gerarIDUnico()" style="background:none; color:var(--orange); border:none; margin-top:10px; cursor:pointer;">[ GERAR NOVO ID ]</button>
-        
-        <button id="btn-entrar" onclick="entrarNoSistema()" style="width:80%; padding: 18px; background:var(--primary); color:white; border:none; border-radius:15px; font-weight: bold; margin-top:30px;">ENTRAR NO SISTEMA</button>
+        <img id="my-header-pic" src="">
     </div>
 
     <div class="header">
         <div class="btn-engrenagem" onclick="toggleMenu()">⚙️</div>
+        <div id="led-encerrar" style="display:none; color:var(--led-blue); font-weight:bold; animation: blinkBlue 1s infinite;" onclick="encerrarChamada()">ENCERRAR</div>
         <div id="meu-id-txt">ID: ...</div>
-        
-        <div id="led-encerrar" style="display:none; color:var(--led-blue);" onclick="encerrarChamada()">ENCERRAR</div>
-        
-        <div id="menu-dropdown" class="dropdown-menu">
-            <div class="dropdown-item" onclick="abrirAgenda()">📂 LISTA DE CONTATOS</div>
-            <div class="dropdown-item" onclick="novoContatoModal()">👤 ADICIONAR AMIGO</div>
-            <div class="dropdown-item" onclick="document.getElementById('img-input').click()">🖼️ MUDAR FUNDO</div>
-            <div class="dropdown-item" style="color:red;" onclick="toggleMenu()">✖ FECHAR</div>
-            <input type="file" id="img-input" accept="image/*" style="display:none" onchange="trocarFundo(this)">
-        </div>
+    </div>
+
+    <div class="stories-bar" id="stories-container">
+        <div class="story-circle" style="border-style: dashed; display:flex; align-items:center; justify-content:center; color:white;" onclick="document.getElementById('story-input').click()">+</div>
     </div>
 
     <div class="visor" id="visor-container">
-        <div id="list-contatos">
-            <button onclick="document.getElementById('list-contatos').style.display='none'" style="width:100%; padding:15px; background:red; border:none; border-radius:12px; color:white; font-weight:bold; margin-bottom:20px;">VOLTAR</button>
-            <div id="contatos-render"></div>
+        <div id="list-contatos" style="display:none; position:absolute; inset:0; background:rgba(0,0,0,0.9); z-index:5000; padding:20px;">
+             <button onclick="document.getElementById('list-contatos').style.display='none'" style="width:100%; padding:10px; background:red; color:white; border:none; border-radius:10px; margin-bottom:10px;">FECHAR</button>
+             <div id="contatos-render"></div>
         </div>
         <div id="contatos-na-tela"></div>
-        <video id="video-remote" autoplay playsinline></video>
-        <video id="video-local" autoplay playsinline muted></video>
+        <video id="video-remote" autoplay playsinline style="width:100%; height:100%; object-fit:cover;"></video>
+        <video id="video-local" autoplay playsinline muted style="width:80px; height:110px; position:absolute; top:10px; right:10px; border-radius:10px; border:2px solid var(--primary); display:none;"></video>
     </div>
 
-    <div class="camera-footer">
-        <div class="camera-icon" onclick="abrirAgenda()"></div>
+    <div class="camera-footer" style="height:60px; display:flex; justify-content:center; align-items:center; background:rgba(0,0,0,0.5);">
+        <div style="width:50px; height:35px; background:#b30000; border-radius:8px;" onclick="abrirAgenda()"></div>
     </div>
 </div>
 
-<div id="incoming-call">
-    <h2 id="caller-name" style="color:white; margin-bottom:50px;">LIGAÇÃO...</h2>
-    <div class="slide-area">
-        <div class="slide-btn" id="slider">📞</div>
+<input type="file" id="my-photo-input" accept="image/*" style="display:none" onchange="salvarFotoPerfil(this)">
+<input type="file" id="story-input" accept="image/*,video/*" style="display:none" onchange="uploadStory(this)">
+<input type="file" id="img-input" accept="image/*" style="display:none" onchange="trocarFundo(this)">
+
+<div id="screen-login">
+    <h2 style="color:var(--primary)">WEB GPT PRO</h2>
+    <div id="led-generator" onclick="document.getElementById('my-photo-input').click()">
+        <img id="preview-foto-login" src="" style="display:none">
+        <span id="txt-add" style="color:white">FOTO</span>
     </div>
+    <input type="text" id="input-nome" placeholder="SEU NOME" style="width:80%; padding:12px; margin-top:20px; border-radius:10px; border:1px solid var(--primary); background:#111; color:white; text-align:center;">
+    <input type="number" id="input-id" readonly style="width:80%; padding:12px; margin-top:10px; border-radius:10px; border:none; background:#222; color:var(--led-green); text-align:center; font-weight:bold;">
+    <button onclick="gerarID()" style="color:var(--orange); background:none; border:none; margin-top:5px;">GERAR ID</button>
+    <button onclick="entrar()" style="width:80%; padding:15px; margin-top:30px; background:var(--primary); color:white; border:none; border-radius:15px; font-weight:bold;">ENTRAR</button>
+</div>
+
+<div id="story-viewer" onclick="this.style.display='none'; document.getElementById('story-content-vid').pause();">
+    <video id="story-content-vid" style="width:100%; height:100%; display:none;" controls autoplay></video>
+    <img id="story-content-img" style="width:100%; height:100%; display:none; object-fit:contain;">
+</div>
+
+<div id="menu-dropdown" class="dropdown-menu">
+    <div class="dropdown-item" onclick="abrirAgenda()">📂 CONTATOS</div>
+    <div class="dropdown-item" onclick="novoContato()">👤 ADICIONAR AMIGO</div>
+    <div class="dropdown-item" onclick="document.getElementById('img-input').click()">🖼️ FUNDO</div>
+    <div class="dropdown-item" style="color:red" onclick="toggleMenu()">✖ FECHAR</div>
 </div>
 
 <script>
     const firebaseConfig = { apiKey: "AIzaJ4WY8pvL7cAgXIZpSkIDk1Oy4rbsb92mgNN", databaseURL: "https://netbase-cloud-default-rtdb.firebaseio.com/" };
     firebase.initializeApp(firebaseConfig);
     const database = firebase.database();
-    let peer, localStream, currentCall, meuID = "", minhaFotoBase64 = "";
+    let peer, localStream, currentCall, meuID = "", minhaFoto = "";
 
-    function gerarIDUnico() {
-        const id = Math.floor(100000 + Math.random() * 800000).toString();
-        document.getElementById('input-id').value = id;
-        document.getElementById('led-generator').classList.add('locked');
-    }
+    function gerarID() { document.getElementById('input-id').value = Math.floor(100000 + Math.random() * 800000); }
 
-    function previewMinhaFoto(input) {
-        const file = input.files[0];
+    function salvarFotoPerfil(input) {
         const reader = new FileReader();
         reader.onload = e => {
-            minhaFotoBase64 = e.target.result;
-            document.getElementById('preview-foto-login').src = minhaFotoBase64;
+            minhaFoto = e.target.result;
+            document.getElementById('preview-foto-login').src = minhaFoto;
             document.getElementById('preview-foto-login').style.display = 'block';
-            document.getElementById('led-placeholder').style.display = 'none';
-            // Se já estiver logado, atualiza o cabeçalho e banco
+            document.getElementById('txt-add').style.display = 'none';
             if(meuID) {
-                document.getElementById('my-header-pic').src = minhaFotoBase64;
-                database.ref('perfis/' + meuID).update({ foto: minhaFotoBase64 });
+                document.getElementById('my-header-pic').src = minhaFoto;
+                database.ref('perfis/'+meuID).update({foto: minhaFoto});
             }
         };
-        reader.readAsDataURL(file);
+        reader.readAsDataURL(input.files[0]);
     }
 
-    async function entrarNoSistema() {
+    async function entrar() {
         meuID = document.getElementById('input-id').value;
-        const meuNome = document.getElementById('input-nome').value;
-        if (!meuID || !meuNome) return alert("Preencha Nome e gere um ID!");
+        let nome = document.getElementById('input-nome').value;
+        if(!meuID || !nome) return alert("Preencha tudo!");
         
         localStorage.setItem('webgpt_id', meuID);
-        localStorage.setItem('webgpt_nome', meuNome);
+        localStorage.setItem('webgpt_nome', nome);
+        database.ref('perfis/'+meuID).set({nome, foto: minhaFoto});
 
-        // Salva perfil no Firebase
-        database.ref('perfis/' + meuID).set({ nome: meuNome, foto: minhaFotoBase64 });
-
-        document.getElementById('btn-entrar').disabled = true;
-        await ativarCamera();
-        
         peer = new Peer(meuID);
         peer.on('open', () => {
             document.getElementById('screen-login').style.display = 'none';
             document.getElementById('meu-id-txt').innerText = "ID: " + meuID;
-            if(minhaFotoBase64) {
-                document.getElementById('my-header-pic').src = minhaFotoBase64;
+            if(minhaFoto) {
+                document.getElementById('my-header-pic').src = minhaFoto;
                 document.getElementById('my-header-pic').style.display = 'block';
             }
+            carregarStories();
             sincronizarContatos();
         });
-
+        
         peer.on('call', call => {
             currentCall = call;
-            document.getElementById('incoming-call').style.display = 'flex';
-            document.getElementById('ringtone').play().catch(()=>{});
+            if(confirm("Atender chamada?")) {
+                ativarCamera().then(() => {
+                    call.answer(localStream);
+                    call.on('stream', s => document.getElementById('video-remote').srcObject = s);
+                    document.getElementById('led-encerrar').style.display = 'block';
+                });
+            }
         });
     }
 
+    // STORY SYSTEM (24 HORAS)
+    function uploadStory(input) {
+        const file = input.files[0];
+        if(file.size > 50 * 1024 * 1024) return alert("Arquivo muito grande!");
+        const reader = new FileReader();
+        reader.onload = e => {
+            const type = file.type.startsWith('video') ? 'video' : 'image';
+            const storyData = {
+                url: e.target.result,
+                type: type,
+                user: meuID,
+                userName: localStorage.getItem('webgpt_nome'),
+                userFoto: minhaFoto,
+                timestamp: Date.now()
+            };
+            database.ref('stories').push(storyData);
+            alert("Story publicado!");
+        };
+        reader.readAsDataURL(file);
+    }
+
+    function carregarStories() {
+        database.ref('stories').on('value', snap => {
+            const now = Date.now();
+            const container = document.getElementById('stories-container');
+            container.innerHTML = '<div class="story-circle" style="border-style: dashed; display:flex; align-items:center; justify-content:center; color:white;" onclick="document.getElementById(\'story-input\').click()">+</div>';
+            
+            snap.forEach(child => {
+                const s = child.val();
+                // Verifica se tem menos de 24 horas (24 * 60 * 60 * 1000)
+                if (now - s.timestamp < 86400000) {
+                    const div = document.createElement('div');
+                    div.className = 'story-circle';
+                    div.innerHTML = `<img src="${s.userFoto || ''}">`;
+                    div.onclick = () => verStory(s.url, s.type);
+                    container.appendChild(div);
+                } else {
+                    // Remove story antigo do banco
+                    database.ref('stories/' + child.key).remove();
+                }
+            });
+        });
+    }
+
+    function verStory(url, type) {
+        const viewer = document.getElementById('story-viewer');
+        const vid = document.getElementById('story-content-vid');
+        const img = document.getElementById('story-content-img');
+        viewer.style.display = 'flex';
+        if(type === 'video') {
+            img.style.display = 'none';
+            vid.style.display = 'block';
+            vid.src = url;
+            vid.play();
+        } else {
+            vid.style.display = 'none';
+            img.style.display = 'block';
+            img.src = url;
+        }
+    }
+
+    // FUNÇÕES DE CHAMADA E UI
     async function ativarCamera() {
-        try {
-            if(!localStream) localStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" }, audio: true });
-            document.getElementById('video-local').srcObject = localStream;
-            document.getElementById('video-local').style.display = 'block';
-        } catch (e) {}
+        if(!localStream) localStream = await navigator.mediaDevices.getUserMedia({video: true, audio: true});
+        document.getElementById('video-local').srcObject = localStream;
+        document.getElementById('video-local').style.display = 'block';
     }
 
     function sincronizarContatos() {
         database.ref('contatos/' + meuID).on('value', snap => {
-            const data = snap.val();
             const render = document.getElementById('contatos-render');
-            if(!data) return;
-            render.innerHTML = Object.values(data).map(c => `
-                <div style="display:flex; align-items:center; gap:15px; padding:15px; border-bottom:1px solid #333; color:white;" onclick="adicionarNaTela('${c.nome}','${c.id}','${c.foto}')">
-                    <img src="${c.foto || ''}" style="width:40px; height:40px; border-radius:50%; background:#444; object-fit:cover;">
-                    <div><b>${c.nome}</b><br><small>ID: ${c.id}</small></div>
-                </div>
-            `).join('');
+            render.innerHTML = "";
+            snap.forEach(c => {
+                const contato = c.val();
+                render.innerHTML += `<div style="padding:10px; color:white; border-bottom:1px solid #333;" onclick="adicionarNaTela('${contato.nome}','${contato.id}','${contato.foto}')">${contato.nome}</div>`;
+            });
         });
     }
 
@@ -258,95 +252,48 @@
         document.getElementById('list-contatos').style.display = 'none';
         const card = document.createElement('div');
         card.className = 'floating-contact';
-        card.innerHTML = `
-            <img src="${foto || ''}" style="width:50px; height:50px; border-radius:50%; background:#444; border:2px solid var(--primary); object-fit:cover;">
-            <div style="color:white; font-size:0.7em; margin:5px 0;">${nome}</div>
-            <button id="btn-call-${id}" class="btn-ligar-blink" onclick="ligarPara('${id}')">LIGAR</button>
-        `;
+        card.style = "position:absolute; top:150px; left:20px; width:120px; background:rgba(0,0,0,0.8); border-radius:15px; padding:10px; text-align:center; border:1px solid var(--primary); z-index:100;";
+        card.innerHTML = `<img src="${foto}" style="width:50px; height:50px; border-radius:50%; object-fit:cover;"><div style="color:white;font-size:10px;">${nome}</div><button onclick="ligar('${id}')" style="background:var(--led-green);border:none;border-radius:5px;width:100%;margin-top:5px;font-weight:bold;">LIGAR</button>`;
         document.getElementById('contatos-na-tela').appendChild(card);
     }
 
-    async function ligarPara(id) {
-        const btn = document.getElementById('btn-call-' + id);
-        if(btn) btn.style.display = 'none';
-        document.getElementById('led-encerrar').style.display = 'block';
-        if(!localStream) await ativarCamera();
+    async function ligar(id) {
+        await ativarCamera();
         currentCall = peer.call(id, localStream);
-        currentCall.on('stream', s => { document.getElementById('video-remote').srcObject = s; });
+        currentCall.on('stream', s => document.getElementById('video-remote').srcObject = s);
+        document.getElementById('led-encerrar').style.display = 'block';
     }
 
     function encerrarChamada() {
         if(currentCall) currentCall.close();
         document.getElementById('video-remote').srcObject = null;
         document.getElementById('led-encerrar').style.display = 'none';
-        document.querySelectorAll('.btn-ligar-blink').forEach(b => b.style.display = 'block');
     }
 
-    function toggleMenu() {
-        const m = document.getElementById('menu-dropdown');
-        m.style.display = (m.style.display === 'block') ? 'none' : 'block';
-    }
-    
+    function toggleMenu() { const m = document.getElementById('menu-dropdown'); m.style.display = (m.style.display === 'block') ? 'none' : 'block'; }
     function abrirAgenda() { document.getElementById('list-contatos').style.display = 'block'; }
-    
-    function novoContatoModal() {
-        const idA = prompt("Digite o ID do amigo:");
-        if (idA) {
-            database.ref('perfis/' + idA).once('value', snap => {
-                const p = snap.val();
-                if(p) {
-                    database.ref('contatos/' + meuID + '/' + idA).set({ nome: p.nome, id: idA, foto: p.foto });
-                    alert("Amigo encontrado e adicionado!");
-                } else { alert("ID não encontrado!"); }
-            });
-        }
-    }
-
     function trocarFundo(i) {
         const r = new FileReader();
         r.onload = e => document.getElementById('visor-container').style.backgroundImage = `url('${e.target.result}')`;
         r.readAsDataURL(i.files[0]);
     }
 
-    // Slider Atender
-    const slider = document.getElementById('slider');
-    let startX = 0, moveX = 0;
-    slider.onpointerdown = e => { startX = e.clientX; slider.setPointerCapture(e.pointerId); };
-    slider.onpointermove = e => {
-        if (startX === 0) return;
-        moveX = e.clientX - startX;
-        if(moveX < 0) moveX = 0; if(moveX > 190) moveX = 190;
-        slider.style.transform = `translateX(${moveX}px)`;
-    };
-    slider.onpointerup = async () => {
-        if(moveX >= 150) {
-            document.getElementById('ringtone').pause();
-            document.getElementById('incoming-call').style.display = 'none';
-            document.getElementById('led-encerrar').style.display = 'block';
-            if(!localStream) await ativarCamera();
-            currentCall.answer(localStream);
-            currentCall.on('stream', s => { document.getElementById('video-remote').srcObject = s; });
-        }
-        startX = 0; moveX = 0; slider.style.transform = 'translateX(0)';
-    };
-
     window.onload = () => {
-        const sid = localStorage.getItem('webgpt_id');
-        const snome = localStorage.getItem('webgpt_nome');
-        if(sid && snome) {
-            document.getElementById('input-id').value = sid;
-            document.getElementById('input-nome').value = snome;
-            database.ref('perfis/' + sid).once('value', snap => {
+        const savedID = localStorage.getItem('webgpt_id');
+        if(savedID) {
+            document.getElementById('input-id').value = savedID;
+            document.getElementById('input-nome').value = localStorage.getItem('webgpt_nome');
+            database.ref('perfis/'+savedID).once('value', snap => {
                 if(snap.val() && snap.val().foto) {
-                    minhaFotoBase64 = snap.val().foto;
-                    document.getElementById('preview-foto-login').src = minhaFotoBase64;
+                    minhaFoto = snap.val().foto;
+                    document.getElementById('preview-foto-login').src = minhaFoto;
                     document.getElementById('preview-foto-login').style.display = 'block';
-                    document.getElementById('led-placeholder').style.display = 'none';
+                    document.getElementById('txt-add').style.display = 'none';
                 }
-                setTimeout(entrarNoSistema, 1000);
             });
         }
     };
 </script>
+
 </body>
 </html>
