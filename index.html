@@ -3,75 +3,38 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Web GPT Pro - Full Edition</title>
+    <title>Web GPT Pro - Fix ID</title>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
     <style>
         :root { --led-green: #00ff00; --primary: #800080; --orange: #ffa500; --led-blue: #00fbff; }
         * { box-sizing: border-box; outline: none; -webkit-tap-highlight-color: transparent; }
-        
-        html, body { 
-            margin: 0; padding: 0; width: 100%; height: 100%; 
-            background: #000; font-family: sans-serif; overflow: hidden; position: fixed; 
-        }
+        html, body { margin: 0; padding: 0; width: 100%; height: 100%; background: #000; font-family: sans-serif; overflow: hidden; position: fixed; }
 
-        .app-main { 
-            display: flex; flex-direction: column; width: 100%; height: 100%; 
-            background: linear-gradient(180deg, #1e56a0 0%, #163e75 100%); 
-            position: relative; z-index: 1;
-        }
+        .app-main { display: flex; flex-direction: column; width: 100%; height: 100%; background: linear-gradient(180deg, #1e56a0 0%, #163e75 100%); position: relative; }
 
-        /* NOTCH AREA */
+        /* HEADER E NOTCH */
         .notch-area { display: flex; flex-direction: column; align-items: center; z-index: 10000; padding-top: 5px; }
-        .notch { 
-            width: 150px; height: 40px; background: #000; 
-            border-bottom-left-radius: 20px; border-bottom-right-radius: 20px; 
-            overflow: hidden; border: 1px solid #333;
-            display: flex; align-items: center; justify-content: center; cursor: pointer;
-        }
-        .label-perfil-notch { color: white; font-size: 11px; font-weight: bold; margin-top: 5px; text-shadow: 0 0 5px #000; }
+        .notch { width: 150px; height: 40px; background: #000; border-bottom-left-radius: 20px; border-bottom-right-radius: 20px; overflow: hidden; border: 1px solid #333; display: flex; align-items: center; justify-content: center; cursor: pointer; }
         #my-header-pic { width: 100%; height: 100%; object-fit: cover; display: none; }
+        .label-perfil-notch { color: white; font-size: 11px; font-weight: bold; margin-top: 5px; }
 
-        /* HEADER & ENGRENAGEM */
-        .header { 
-            height: 45px; padding: 0 15px; 
-            display: flex; align-items: center; justify-content: space-between; 
-            position: absolute; top: 10px; width: 100%; z-index: 9000; 
-        }
-        .btn-engrenagem { font-size: 1.5em; cursor: pointer; color: white; z-index: 10001; }
-        #meu-id-txt { color: var(--led-green); font-weight: bold; font-size: 0.8em; text-shadow: 0 0 5px #000; }
+        .header { height: 45px; padding: 0 15px; display: flex; align-items: center; justify-content: space-between; position: absolute; top: 10px; width: 100%; z-index: 9000; }
+        .btn-engrenagem { font-size: 1.5em; cursor: pointer; color: white; }
+        #meu-id-txt { color: var(--led-green); font-weight: bold; font-size: 0.8em; }
 
-        /* VISOR */
-        .visor { 
-            flex: 1; position: relative; overflow: hidden; 
-            background-size: cover; background-position: center;
-            margin-top: 10px; z-index: 5;
-        }
+        /* LOGIN */
+        #screen-login { position: fixed; inset: 0; background: #000; z-index: 50000; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; }
+        #led-generator { width: 100px; height: 100px; border-radius: 50%; border: 3px solid #fff; display: flex; align-items: center; justify-content: center; overflow: hidden; cursor: pointer; background: #111; }
+        #preview-foto-login { width: 100%; height: 100%; object-fit: cover; }
+        input { width: 80%; padding: 12px; margin-top: 15px; border-radius: 10px; background: #111; color: white; border: 1px solid var(--primary); text-align: center; font-size: 16px; }
 
-        /* DROPDOWN MENU */
-        .dropdown-menu { 
-            position: absolute; top: 60px; left: 15px; 
-            background: rgba(0,0,0,0.95); border: 1px solid var(--primary); 
-            border-radius: 15px; width: 220px; display: none; z-index: 20000; 
-        }
+        /* MENU */
+        .dropdown-menu { position: absolute; top: 60px; left: 15px; background: rgba(0,0,0,0.95); border: 1px solid var(--primary); border-radius: 15px; width: 220px; display: none; z-index: 20000; }
         .dropdown-item { padding: 15px; border-bottom: 1px solid #222; color: var(--orange); font-size: 0.9em; font-weight: bold; cursor: pointer; }
 
-        /* LOGIN SCREEN */
-        #screen-login { 
-            position: fixed; inset: 0; background: #000; 
-            z-index: 50000; display: flex; flex-direction: column; 
-            align-items: center; justify-content: center; padding: 20px; 
-        }
-        #led-generator { width: 100px; height: 100px; border-radius: 50%; border: 3px solid #fff; display: flex; align-items: center; justify-content: center; overflow: hidden; cursor: pointer; }
-        #preview-foto-login { width: 100%; height: 100%; object-fit: cover; }
-        
-        input { 
-            width: 80%; padding: 12px; margin-top: 15px; border-radius: 10px; 
-            background: #111; color: white; border: 1px solid var(--primary); text-align: center; 
-        }
-
-        .camera-footer { height: 70px; display: flex; justify-content: center; align-items: center; background: rgba(0,0,0,0.4); z-index: 10; }
-        .btn-red { width: 60px; height: 40px; background: #b30000; border-radius: 10px; border: 2px solid #500; cursor: pointer; }
+        .visor { flex: 1; position: relative; overflow: hidden; background-size: cover; background-position: center; z-index: 5; }
+        #list-contatos { position: absolute; inset: 0; background: rgba(0,0,0,0.95); z-index: 30000; display: none; padding: 20px; }
     </style>
 </head>
 <body>
@@ -83,122 +46,109 @@
         <span id="txt-add" style="color:white; font-size:12px;">FOTO</span>
     </div>
     <input type="text" id="input-nome" placeholder="SEU NOME">
-    <input type="number" id="input-id" placeholder="ID (DIGITE OU GERE)">
-    <button onclick="gerarID()" style="margin-top:10px; background:none; border:1px solid var(--orange); color:var(--orange); padding:8px; border-radius:8px;">GERAR NOVO ID</button>
-    <button onclick="entrar()" style="width:80%; padding:15px; margin-top:30px; background:var(--primary); color:white; border:none; border-radius:15px; font-weight:bold;">ACESSAR SISTEMA</button>
+    <input type="number" id="input-id" oninput="buscarCadastro(this.value)" placeholder="DIGITE SEU ID">
+    <button onclick="gerarNovoID()" style="margin-top:10px; background:none; border:1px solid var(--orange); color:var(--orange); padding:8px; border-radius:8px;">GERAR NOVO ID</button>
+    <button onclick="entrar()" style="width:80%; padding:15px; margin-top:30px; background:var(--primary); color:white; border:none; border-radius:15px; font-weight:bold;">ACESSAR</button>
 </div>
 
 <div class="app-main">
     <div class="notch-area">
-        <div class="notch" onclick="document.getElementById('my-photo-input').click()">
-            <img id="my-header-pic" src="">
-        </div>
+        <div class="notch"><img id="my-header-pic" src=""></div>
         <div class="label-perfil-notch">PERFIL</div>
     </div>
-
     <div class="header">
         <div class="btn-engrenagem" onclick="toggleMenu()">⚙️</div>
         <div id="meu-id-txt">ID: ...</div>
     </div>
-
     <div id="menu-dropdown" class="dropdown-menu">
-        <div class="dropdown-item" onclick="abrirAgenda()">📂 LISTA DE CONTATOS</div>
+        <div class="dropdown-item" onclick="abrirAgenda()">📂 CONTATOS</div>
         <div class="dropdown-item" onclick="novoAmigo()">👤 ADICIONAR AMIGO</div>
-        <div class="dropdown-item" onclick="document.getElementById('bg-input').click()">🖼️ MUDAR FUNDO</div>
         <div class="dropdown-item" style="color:red" onclick="toggleMenu()">✖ FECHAR</div>
     </div>
-
     <div class="visor" id="visor-container">
-        <div id="contatos-na-tela"></div>
-        
-        <div id="list-contatos" style="display:none; position:absolute; inset:0; background:rgba(0,0,0,0.9); z-index:30000; padding:20px;">
-             <button onclick="fecharAgenda()" style="width:100%; padding:15px; background:red; color:white; border:none; border-radius:10px;">VOLTAR</button>
-             <div id="contatos-render" style="margin-top:20px;"></div>
+        <div id="list-contatos">
+            <button onclick="fecharAgenda()" style="width:100%; padding:15px; background:red; color:white; border:none; border-radius:10px;">VOLTAR</button>
+            <div id="contatos-render"></div>
         </div>
-    </div>
-
-    <div class="camera-footer">
-        <div class="btn-red" onclick="abrirAgenda()"></div>
     </div>
 </div>
 
-<input type="file" id="my-photo-input" accept="image/*" style="display:none" onchange="salvarFoto(this)">
-<input type="file" id="bg-input" accept="image/*" style="display:none" onchange="mudarFundo(this)">
+<input type="file" id="my-photo-input" style="display:none" onchange="processarFoto(this)">
 
 <script>
     const firebaseConfig = { apiKey: "AIzaJ4WY8pvL7cAgXIZpSkIDk1Oy4rbsb92mgNN", databaseURL: "https://netbase-cloud-default-rtdb.firebaseio.com/" };
     firebase.initializeApp(firebaseConfig);
     const database = firebase.database();
-    
     let meuID = "", meuNome = "", minhaFoto = "";
 
-    function gerarID() { document.getElementById('input-id').value = Math.floor(100000 + Math.random() * 900000); }
-
-    function toggleMenu() {
-        const m = document.getElementById('menu-dropdown');
-        m.style.display = (m.style.display === 'block') ? 'none' : 'block';
+    // FUNÇÃO QUE RECUPERA SEU CADASTRO IMEDIATAMENTE
+    function buscarCadastro(id) {
+        if(id.length < 4) return;
+        database.ref('perfis/' + id).once('value', snap => {
+            if(snap.exists()) {
+                const dados = snap.val();
+                document.getElementById('input-nome').value = dados.nome;
+                if(dados.foto) {
+                    minhaFoto = dados.foto;
+                    const pre = document.getElementById('preview-foto-login');
+                    pre.src = dados.foto; pre.style.display = 'block';
+                    document.getElementById('txt-add').style.display = 'none';
+                }
+            }
+        });
     }
 
-    function abrirAgenda() { document.getElementById('list-contatos').style.display = 'block'; toggleMenu(); }
-    function fecharAgenda() { document.getElementById('list-contatos').style.display = 'none'; }
+    function gerarNovoID() { document.getElementById('input-id').value = Math.floor(100000 + Math.random() * 900000); }
 
-    function salvarFoto(input) {
+    function processarFoto(input) {
         const reader = new FileReader();
         reader.onload = e => {
             minhaFoto = e.target.result;
             document.getElementById('preview-foto-login').src = minhaFoto;
             document.getElementById('preview-foto-login').style.display = 'block';
             document.getElementById('txt-add').style.display = 'none';
-            document.getElementById('my-header-pic').src = minhaFoto;
-            document.getElementById('my-header-pic').style.display = 'block';
         };
         reader.readAsDataURL(input.files[0]);
-    }
-
-    function mudarFundo(input) {
-        const reader = new FileReader();
-        reader.onload = e => {
-            document.getElementById('visor-container').style.backgroundImage = `url('${e.target.result}')`;
-        };
-        reader.readAsDataURL(input.files[0]);
-        toggleMenu();
     }
 
     async function entrar() {
         meuID = document.getElementById('input-id').value;
         meuNome = document.getElementById('input-nome').value;
-        if(!meuID || !meuNome) return alert("Preencha tudo!");
+        if(!meuID || !meuNome) return alert("Erro: ID ou Nome vazios");
 
-        database.ref('perfis/'+meuID).update({ nome: meuNome, foto: minhaFoto });
+        // Salva/Atualiza e libera a entrada
+        await database.ref('perfis/' + meuID).update({ nome: meuNome, foto: minhaFoto });
         document.getElementById('screen-login').style.display = 'none';
         document.getElementById('meu-id-txt').innerText = "ID: " + meuID;
-        sincronizar();
-    }
-
-    function novoAmigo() {
-        const idA = prompt("ID do Amigo:");
-        if(idA) {
-            database.ref('perfis/'+idA).once('value', s => {
-                if(s.exists()) {
-                    database.ref('agenda/'+meuID+'/'+idA).set({ id: idA, nome: s.val().nome, foto: s.val().foto || "" });
-                    alert("Adicionado!");
-                } else { alert("Não encontrado"); }
-            });
+        
+        if(minhaFoto) {
+            document.getElementById('my-header-pic').src = minhaFoto;
+            document.getElementById('my-header-pic').style.display = 'block';
         }
-        toggleMenu();
+        carregarAgenda();
     }
 
-    function sincronizar() {
-        database.ref('agenda/'+meuID).on('value', snap => {
-            const render = document.getElementById('contatos-render');
-            render.innerHTML = "";
+    function carregarAgenda() {
+        database.ref('agenda/' + meuID).on('value', snap => {
+            const r = document.getElementById('contatos-render');
+            r.innerHTML = "";
             snap.forEach(c => {
-                const d = c.val();
-                render.innerHTML += `<div style="padding:15px; color:white; border-bottom:1px solid #222;" onclick="alert('Ligando para ${d.nome}...')">${d.nome}</div>`;
+                r.innerHTML += `<div style="padding:15px; color:white; border-bottom:1px solid #222;">${c.val().nome}</div>`;
             });
         });
     }
-</script>
 
+    function toggleMenu() { const m = document.getElementById('menu-dropdown'); m.style.display = (m.style.display === 'block') ? 'none' : 'block'; }
+    function abrirAgenda() { document.getElementById('list-contatos').style.display = 'block'; toggleMenu(); }
+    function fecharAgenda() { document.getElementById('list-contatos').style.display = 'none'; }
+    
+    function novoAmigo() {
+        const idA = prompt("ID do Amigo:");
+        if(idA) database.ref('perfis/'+idA).once('value', s => {
+            if(s.exists()) database.ref('agenda/'+meuID+'/'+idA).set({ nome: s.val().nome });
+        });
+        toggleMenu();
+    }
+</script>
 </body>
-            </html>
+</html>
