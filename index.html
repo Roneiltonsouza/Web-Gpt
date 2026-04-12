@@ -3,288 +3,124 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Web GPT Pro - Full Edition</title>
+    <title>Web GPT Pro - Firebase Lock</title>
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
     <style>
         :root { --led-green: #00ff00; --primary: #800080; --orange: #ffa500; --led-blue: #00fbff; --led-red: #ff0000; }
-        * { box-sizing: border-box; touch-action: none; outline: none; -webkit-tap-highlight-color: transparent; }
+        * { box-sizing: border-box; touch-action: none; outline: none; }
         html, body { margin: 0; padding: 0; width: 100%; height: 100%; background: #000; font-family: sans-serif; overflow: hidden; position: fixed; }
 
-        .app-main { display: flex; flex-direction: column; width: 100%; height: 100%; background: linear-gradient(180deg, #1e56a0 0%, #163e75 100%); position: relative; }
+        .app-main { display: flex; flex-direction: column; width: 100%; height: 100%; background: linear-gradient(180deg, #1e56a0 0%, #163e75 100%); }
 
-        /* CABEÇALHO */
-        .notch-container { display: flex; flex-direction: column; align-items: center; z-index: 10000; }
         .notch { 
-            width: 210px; height: 45px; 
+            width: 210px; height: 45px; margin: 0 auto;
             background: linear-gradient(90deg, #000 0%, #fff 33%, #ffa500 66%, #800080 100%);
             border-bottom-left-radius: 25px; border-bottom-right-radius: 25px; 
-            overflow: hidden; border: 2px solid #333;
-            display: flex; align-items: center; justify-content: center; cursor: pointer;
-            gap: 10px; padding: 0 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            display: flex; align-items: center; justify-content: center; gap: 10px; border: 2px solid #333;
         }
         
-        /* LED DE STATUS */
-        .led-status {
-            width: 8px; height: 8px; border-radius: 50%;
-            background: var(--led-red); box-shadow: 0 0 5px var(--led-red);
-            position: absolute; top: 5px; right: 25px;
-        }
-        .led-active { background: var(--led-green); box-shadow: 0 0 8px var(--led-green); }
+        .led-status { width: 8px; height: 8px; border-radius: 50%; background: var(--led-red); }
+        .led-active { background: var(--led-green) !important; box-shadow: 0 0 8px var(--led-green); }
 
-        #header-pic-circle { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; border: 2px solid #000; }
-        .info-notch { display: flex; flex-direction: column; }
-        .label-perfil { color: #000; font-size: 11px; font-weight: bold; text-shadow: 1px 1px 0px rgba(255,255,255,0.5); }
-        .id-notch { color: #000; font-size: 10px; font-weight: bold; font-family: monospace; }
-
-        .aba-menu {
-            position: absolute; left: 0; top: 130px; background: var(--primary);
-            color: white; padding: 12px 6px; border-radius: 0 12px 12px 0;
-            font-size: 10px; font-weight: bold; writing-mode: vertical-rl;
-            cursor: pointer; z-index: 9500; border: 1px solid var(--led-blue);
-        }
-
-        .visor { flex: 1; position: relative; overflow: hidden; margin-top: 10px; }
-        #video-remote { width: 100%; height: 100%; object-fit: cover; position: absolute; top: 0; left: 0; z-index: 1; }
-        #video-local { width: 85px; height: 120px; position: absolute; top: 10px; right: 10px; border: 2px solid var(--primary); z-index: 100; display: none; border-radius: 12px; object-fit: cover; }
-
-        #view-perfil-full { 
-            position: fixed; inset: 0; background: rgba(0,0,0,0.98); 
-            z-index: 50000; display: none; flex-direction: column; 
-            align-items: center; justify-content: center; 
-        }
-        #img-full-edit { width: 180px; height: 180px; border-radius: 20px; border: 3px solid var(--orange); object-fit: cover; }
-        .btn-perfil-opt { width: 80%; padding: 15px; margin-top: 10px; border-radius: 12px; border: none; font-weight: bold; cursor: pointer; }
-
-        .floating-contact { position: absolute; width: 110px; background: rgba(0,0,0,0.85); border-radius: 15px; padding: 10px; text-align: center; border: 1px solid var(--primary); z-index: 200; transition: transform 0.2s; }
-        
-        .floating-img { 
-            position: absolute; width: 100%; height: 100%; 
-            top: 0; left: 0; z-index: 50; background: #000;
-        }
-        .floating-img img { width: 100%; height: 100%; object-fit: contain; }
-        .btn-sair-foto { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); background: red; color: white; border: none; padding: 15px; border-radius: 10px; font-weight: bold; z-index: 60; }
-
-        .dropdown-menu { position: absolute; top: 130px; left: 0; background: rgba(0,0,0,0.95); border: 1px solid var(--primary); border-radius: 0 15px 15px 0; width: 200px; display: none; z-index: 11000; }
-        .dropdown-item { padding: 15px; border-bottom: 1px solid #222; color: var(--orange); font-size: 0.9em; font-weight: bold; }
-        #list-contatos { display:none; position:absolute; inset:0; background:rgba(0,0,0,0.98); z-index:15000; padding:20px; overflow-y: auto; }
-        
-        #screen-login { position: fixed; inset: 0; background: #000; z-index: 20000; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; }
-        .btn-gen { background: none; border: 1px solid var(--led-blue); color: var(--led-blue); padding: 5px 10px; font-size: 10px; margin-top: 5px; border-radius: 5px; }
+        #screen-login { position: fixed; inset: 0; background: #000; z-index: 20000; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        .input-style { width: 80%; padding: 12px; margin-top: 10px; border-radius: 10px; border: 1px solid var(--primary); background: #111; color: white; text-align: center; }
+        .btn-main { width: 80%; padding: 15px; margin-top: 25px; background: var(--primary); color: white; border: none; border-radius: 15px; font-weight: bold; cursor: pointer; }
     </style>
 </head>
 <body>
 
 <div class="app-main">
-    <div class="notch-container">
-        <div class="notch" onclick="abrirConfigPerfil()">
-            <div id="led-ativo" class="led-status"></div>
-            <img id="header-pic-circle" src="">
-            <div class="info-notch">
-                <span class="label-perfil" id="label-nome-topo">PERFIL</span>
-                <span class="id-notch" id="label-id-topo">ID: ---</span>
-            </div>
-        </div>
+    <div class="notch">
+        <div id="led-ativo" class="led-status"></div>
+        <div id="label-nome-topo" style="font-size: 11px; font-weight: bold;">PERFIL</div>
     </div>
-
-    <div class="aba-menu" onclick="toggleMenu()">MENU</div>
-
-    <div class="visor" id="visor-container">
-        <div id="list-contatos">
-             <button onclick="document.getElementById('list-contatos').style.display='none'" style="width:100%; padding:15px; background:red; color:white; border:none; border-radius:10px; margin-bottom:15px; font-weight:bold;">VOLTAR</button>
-             <div id="contatos-render"></div>
-        </div>
-        <div id="contatos-na-tela"></div>
-        <video id="video-remote" autoplay playsinline></video>
-        <video id="video-local" autoplay playsinline muted></video>
+    <div style="flex:1; display:flex; align-items:center; justify-content:center;">
+        <video id="video-remote" style="width:100%; height:100%; object-fit:cover;" autoplay playsinline></video>
     </div>
-
-    <div class="camera-footer" style="height:60px; display:flex; justify-content:center; align-items:center; background:rgba(0,0,0,0.5);">
-        <div style="width:50px; height:35px; background:#b30000; border-radius:8px; border:2px solid #500; cursor:pointer;" onclick="abrirAgenda()"></div>
-    </div>
-</div>
-
-<div id="view-perfil-full">
-    <img id="img-full-edit" src="">
-    <button class="btn-perfil-opt" style="background:var(--primary); color:white;" onclick="document.getElementById('change-photo-input').click()">MUDAR MINHA FOTO</button>
-    <button class="btn-perfil-opt" style="background:var(--orange); color:black;" onclick="document.getElementById('gallery-to-screen').click()">ADICIONAR IMAGEM NA TELA</button>
-    <button class="btn-perfil-opt" style="background:#333; color:white; margin-top:30px;" onclick="fecharPerfil()">FECHAR</button>
-</div>
-
-<div id="menu-dropdown" class="dropdown-menu">
-    <div class="dropdown-item" onclick="abrirAgenda()">📂 AGENDA</div>
-    <div class="dropdown-item" onclick="novoContatoModal()">👤 NOVO CONTATO</div>
-    <div class="dropdown-item" style="color:red" onclick="toggleMenu()">✖ FECHAR</div>
 </div>
 
 <div id="screen-login">
-    <h2 style="color:var(--primary)">WEB GPT PRO</h2>
-    <div onclick="document.getElementById('my-photo-input').click()" style="width:100px; height:100px; border-radius:50%; border:3px solid #fff; display:flex; align-items:center; justify-content:center; overflow:hidden;">
-        <img id="preview-foto-login" src="" style="display:none; width:100%; height:100%; object-fit:cover;">
-        <span id="txt-add" style="color:white; font-size:12px;">FOTO</span>
+    <h2 style="color:var(--primary)">SISTEMA DE ACESSO</h2>
+    
+    <div id="user-info-preview" style="text-align:center; margin-bottom:15px;">
+        <div id="foto-frame" style="width:80px; height:80px; border-radius:50%; border:2px solid #fff; margin:0 auto; overflow:hidden; background:#222;">
+            <img id="preview-foto-login" src="" style="display:none; width:100%; height:100%; object-fit:cover;">
+        </div>
     </div>
-    <input type="text" id="input-nome" placeholder="SEU NOME" style="width:80%; padding:12px; margin-top:20px; border-radius:10px; border:1px solid var(--primary); background:#111; color:white; text-align:center;">
-    <input type="number" id="input-id" oninput="buscarDadosAuto(this.value)" placeholder="DIGITE SEU ID" style="width:80%; padding:12px; margin-top:10px; border-radius:10px; background:#222; color:var(--led-green); text-align:center; font-weight:bold;">
-    <button class="btn-gen" onclick="gerarIdUnico()">GERAR NOVO ID</button>
-    <button onclick="entrar()" style="width:80%; padding:15px; margin-top:30px; background:var(--primary); color:white; border:none; border-radius:15px; font-weight:bold;">ACESSAR</button>
-</div>
 
-<input type="file" id="my-photo-input" accept="image/*" style="display:none" onchange="processarFoto(this, 'login')">
-<input type="file" id="change-photo-input" accept="image/*" style="display:none" onchange="processarFoto(this, 'edit')">
-<input type="file" id="gallery-to-screen" accept="image/*" style="display:none" onchange="imgParaTela(this)">
+    <input type="text" id="input-nome" class="input-style" placeholder="Nome do Usuário">
+    <input type="number" id="input-id" class="input-style" placeholder="Digite seu ID Único">
+    
+    <button class="btn-main" onclick="entrar()">AUTENTICAR ACESSO</button>
+    <button onclick="gerarNovoID()" style="background:none; border:1px solid gray; color:gray; padding:5px; margin-top:15px; border-radius:5px; font-size:10px;">CRIAR NOVO ID ÚNICO</button>
+</div>
 
 <script>
     const firebaseConfig = { apiKey: "AIzaJ4WY8pvL7cAgXIZpSkIDk1Oy4rbsb92mgNN", databaseURL: "https://netbase-cloud-default-rtdb.firebaseio.com/" };
     firebase.initializeApp(firebaseConfig);
     const database = firebase.database();
-    let peer, localStream, currentCall, meuID = "", minhaFoto = "", meuNome = "";
 
-    function gerarIdUnico() {
+    // Gera uma "assinatura" única para este navegador/celular
+    const fingerprint = navigator.userAgent + (screen.height * screen.width);
+
+    function gerarNovoID() {
         const novoId = Math.floor(100000 + Math.random() * 900000);
         document.getElementById('input-id').value = novoId;
-    }
-
-    function buscarDadosAuto(id) {
-        if(id.length < 3) return;
-        database.ref('perfis/'+id).once('value', snap => {
-            if(snap.exists()){
-                const d = snap.val();
-                document.getElementById('input-nome').value = d.nome;
-                if(d.foto) { 
-                    minhaFoto = d.foto; 
-                    document.getElementById('preview-foto-login').src = d.foto; 
-                    document.getElementById('preview-foto-login').style.display = 'block'; 
-                    document.getElementById('txt-add').style.display = 'none'; 
-                }
-            }
-        });
+        alert("Novo ID gerado: " + novoId + "\nEste ID ficará preso a este aparelho após o primeiro login.");
     }
 
     async function entrar() {
-        meuID = document.getElementById('input-id').value;
-        meuNome = document.getElementById('input-nome').value;
-        if(!meuID || !meuNome) return alert("Preencha Nome e ID");
+        const id = document.getElementById('input-id').value;
+        const nome = document.getElementById('input-nome').value;
 
-        // Checar se ID já está logado em outro lugar
-        const statusRef = database.ref('perfis/'+meuID+'/online');
-        const snap = await statusRef.once('value');
-        
-        if(snap.val() === true) {
-            alert("Este ID já está ativo em outro dispositivo!");
-            return;
+        if(!id || !nome) return alert("Preencha os campos!");
+
+        const userRef = database.ref('perfis/' + id);
+        const snap = await userRef.once('value');
+
+        if(snap.exists()) {
+            const dados = snap.val();
+            
+            // TRAVA DE SEGURANÇA NO FIREBASE
+            // Verifica se o aparelho que está tentando logar é o mesmo que criou a conta
+            if(dados.device_lock && dados.device_lock !== fingerprint) {
+                alert("ACESSO NEGADO: Este ID pertence a outro dispositivo!");
+                return;
+            }
+            
+            // Se o ID existe mas não tinha trava, a gente tranca agora (Proteção de primeiro acesso)
+            if(!dados.device_lock) {
+                userRef.update({ device_lock: fingerprint });
+            }
+        } else {
+            // CRIAÇÃO DE CONTA (Primeiro Acesso)
+            // Registra o ID e já tranca o dispositivo imediatamente
+            userRef.set({
+                nome: nome,
+                device_lock: fingerprint,
+                online: true,
+                criado_em: Date.now()
+            });
         }
 
-        // Marcar como online e configurar Peer
-        database.ref('perfis/'+meuID).update({ nome: meuNome, foto: minhaFoto, online: true });
-        // Garantir que ao fechar a aba, o status mude para offline
-        statusRef.onDisconnect().set(false);
+        // Se passou pela trava, inicia o sistema
+        finalizarLogin(id, nome);
+    }
 
-        peer = new Peer(meuID);
+    function finalizarLogin(id, nome) {
+        document.getElementById('screen-login').style.display = 'none';
+        document.getElementById('label-nome-topo').innerText = nome;
+        document.getElementById('led-ativo').classList.add('led-active');
         
-        peer.on('open', () => {
-            document.getElementById('screen-login').style.display = 'none';
-            document.getElementById('label-nome-topo').innerText = meuNome;
-            document.getElementById('label-id-topo').innerText = "ID: " + meuID;
-            document.getElementById('led-ativo').classList.add('led-active'); // Ativa o LED
-            if(minhaFoto) { 
-                document.getElementById('header-pic-circle').src = minhaFoto; 
-                document.getElementById('header-pic-circle').style.display = 'block'; 
-            }
-            ativarCamera(); sincronizarContatos();
-        });
-
-        peer.on('error', err => {
-            if(err.type === 'unavailable-id') alert("Erro: ID já em uso!");
-        });
-
-        peer.on('call', call => {
-            if(confirm("Atender vídeo?")) {
-                call.answer(localStream);
-                call.on('stream', s => { document.getElementById('video-remote').srcObject = s; });
-                currentCall = call;
-            }
-        });
+        const peer = new Peer(id);
+        peer.on('open', () => console.log("Conectado com ID: " + id));
+        
+        // Mantém status online no Firebase
+        database.ref('perfis/' + id).update({ online: true });
+        database.ref('perfis/' + id + '/online').onDisconnect().set(false);
     }
-
-    function imgParaTela(input) {
-        const reader = new FileReader();
-        reader.onload = e => {
-            const card = document.createElement('div');
-            card.className = 'floating-img';
-            card.innerHTML = `<img src="${e.target.result}"><button class="btn-sair-foto" onclick="this.parentElement.remove()">SAIR DA TELA</button>`;
-            document.getElementById('contatos-na-tela').appendChild(card);
-            fecharPerfil();
-        };
-        reader.readAsDataURL(input.files[0]);
-    }
-
-    function abrirConfigPerfil() {
-        document.getElementById('img-full-edit').src = minhaFoto || "";
-        document.getElementById('view-perfil-full').style.display = 'flex';
-    }
-    function fecharPerfil() { document.getElementById('view-perfil-full').style.display = 'none'; }
-    
-    function processarFoto(input, modo) {
-        const reader = new FileReader();
-        reader.onload = e => {
-            minhaFoto = e.target.result;
-            if(modo === 'login') { 
-                document.getElementById('preview-foto-login').src = minhaFoto; 
-                document.getElementById('preview-foto-login').style.display = 'block'; 
-                document.getElementById('txt-add').style.display = 'none'; 
-            } else { 
-                document.getElementById('img-full-edit').src = minhaFoto; 
-                document.getElementById('header-pic-circle').src = minhaFoto; 
-                database.ref('perfis/'+meuID).update({ foto: minhaFoto }); 
-            }
-        };
-        reader.readAsDataURL(input.files[0]);
-    }
-
-    async function ativarCamera() { try { localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true }); document.getElementById('video-local').srcObject = localStream; document.getElementById('video-local').style.display = 'block'; } catch(e) {} }
-    
-    function sincronizarContatos() {
-        database.ref('agenda/' + meuID).on('value', snap => {
-            const render = document.getElementById('contatos-render'); render.innerHTML = "";
-            snap.forEach(c => {
-                const con = c.val();
-                render.innerHTML += `<div style="display:flex; align-items:center; justify-content:space-between; padding:12px; border-bottom:1px solid #333;">
-                    <div style="display:flex; align-items:center; gap:10px; color:white;" onclick="fixarNaTela('${con.nome}','${con.id}','${con.foto}')"><img src="${con.foto}" style="width:40px; height:40px; border-radius:50%; object-fit:cover;"><b>${con.nome}</b></div>
-                    <button onclick="excluirContato('${con.id}')" style="background:none; border:none; color:red; font-weight:bold;">X</button></div>`;
-            });
-        });
-    }
-
-    function fixarNaTela(nome, id, foto) {
-        document.getElementById('list-contatos').style.display = 'none';
-        const card = document.createElement('div');
-        card.className = 'floating-contact';
-        card.style.top = "150px"; card.style.left = "30px";
-        card.innerHTML = `<img src="${foto}" style="width:50px; height:50px; border-radius:50%; object-fit:cover;"><div style="color:white; font-size:10px;">${nome}</div><button onclick="ligarPara('${id}')" style="background:var(--led-green); border:none; border-radius:5px; padding:3px 8px; font-weight:bold; font-size:9px;">LIGAR</button>`;
-        let startX = 0; card.ontouchstart = (e) => startX = e.touches[0].clientX;
-        card.ontouchmove = (e) => { if(e.touches[0].clientX - startX > 60) { card.style.transform = "translateX(250%)"; setTimeout(() => card.remove(), 200); } };
-        document.getElementById('contatos-na-tela').appendChild(card);
-    }
-
-    function novoContatoModal() { 
-        const n = prompt("Nome:"); const i = prompt("ID:"); 
-        if(n && i) database.ref('perfis/'+i).once('value', s => { 
-            const f = s.exists() ? s.val().foto : ""; 
-            database.ref('agenda/'+meuID+'/'+i).set({id:i, nome:n, foto:f}); 
-        }); 
-        toggleMenu(); 
-    }
-
-    function ligarPara(id) { 
-        const call = peer.call(id, localStream); 
-        call.on('stream', s => { document.getElementById('video-remote').srcObject = s; }); 
-        currentCall = call; 
-    }
-
-    function excluirContato(id) { if(confirm("Excluir?")) database.ref('agenda/'+meuID+'/'+id).remove(); }
-    function toggleMenu() { const m = document.getElementById('menu-dropdown'); m.style.display = (m.style.display === 'block') ? 'none' : 'block'; }
-    function abrirAgenda() { document.getElementById('list-contatos').style.display = 'block'; }
 </script>
 </body>
 </html>
