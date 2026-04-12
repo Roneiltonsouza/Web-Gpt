@@ -41,11 +41,14 @@
             z-index: 20000; display: flex; flex-direction: column; 
             align-items: center; justify-content: center; padding: 20px;
         }
+        
+        /* LED COM TRAVA VISUAL */
         #led-generator { 
             width: 80px; height: 80px; border-radius: 50%; border: 4px solid #fff; 
             background: #333; cursor: pointer; transition: 0.3s; 
             box-shadow: 0 0 15px rgba(255,255,255,0.2); 
         }
+        #led-generator.locked { cursor: default; border-color: var(--led-green); }
 
         .header { 
             height: 50px; padding: 0 15px; 
@@ -126,9 +129,9 @@
     <div id="screen-login">
         <h1 style="color:var(--primary); margin-bottom: 30px;">WEB GPT</h1>
         <div id="led-generator" onclick="gerarIDUnico()"></div>
-        <p style="color: #666; margin-top: 15px; font-size: 0.8em;">TOQUE NO LED PARA GERAR SEU ID</p>
+        <p id="msg-led" style="color: #666; margin-top: 15px; font-size: 0.8em;">TOQUE NO LED PARA GERAR SEU ID</p>
         <input type="number" id="input-id" readonly style="width:80%; padding:18px; margin:30px; background:#111; color:white; border:1px solid var(--primary); border-radius:15px; text-align:center; font-size: 1.5em;">
-        <button onclick="entrarNoSistema()" style="width:80%; padding: 18px; background:var(--primary); color:white; border:none; border-radius:15px; font-weight: bold; font-size: 1.1em;">ENTRAR NO SISTEMA</button>
+        <button id="btn-entrar" onclick="entrarNoSistema()" style="width:80%; padding: 18px; background:var(--primary); color:white; border:none; border-radius:15px; font-weight: bold; font-size: 1.1em;">ENTRAR NO SISTEMA</button>
     </div>
 
     <div class="header">
@@ -174,12 +177,10 @@
     const database = firebase.database();
     let peer, localStream, currentCall, meuID = "";
 
-    // 1. SISTEMA DE NOTIFICAÇÃO (BADGE)
     function setBadge(count) {
         if (window.AndroidBridge && window.AndroidBridge.showNotification) {
             window.AndroidBridge.showNotification(count);
         }
-        console.log("Badge atualizada para: " + count);
     }
 
     function toggleMenu() {
@@ -187,20 +188,33 @@
         m.style.display = (m.style.display === 'block') ? 'none' : 'block';
     }
 
+    // GERAÇÃO COM TRAVA DE SEGURANÇA
     function gerarIDUnico() {
+        if(localStorage.getItem('webgpt_id')) return; // Bloqueia se já existe
+
         const id = Math.floor(100000 + Math.random() * 800000).toString();
         document.getElementById('input-id').value = id;
+        
         const led = document.getElementById('led-generator');
         led.style.background = 'var(--led-green)';
         led.style.boxShadow = '0 0 30px var(--led-green)';
+        led.classList.add('locked');
+        
+        document.getElementById('msg-led').innerText = "ID GERADO COM SUCESSO!";
+        document.getElementById('msg-led').style.color = "var(--led-green)";
+        
+        // Salva imediatamente para não perder
+        localStorage.setItem('webgpt_id', id);
     }
 
     async function entrarNoSistema() {
-        meuID = document.getElementById('input-id').value;
-        if (!meuID) return alert("GERE UM ID NO LED!");
-        localStorage.setItem('webgpt_id', meuID);
+        meuID = localStorage.getItem('webgpt_id') || document.getElementById('input-id').value;
+        if (!meuID) return alert("TOQUE NO LED PRIMEIRO!");
         
-        // Ativa a câmera no Android IMEDIATAMENTE ao entrar
+        // Bloqueia o botão para evitar múltiplos cliques
+        document.getElementById('btn-entrar').disabled = true;
+        document.getElementById('btn-entrar').innerText = "CONECTANDO...";
+
         await ativarCamera();
 
         peer = new Peer(meuID);
@@ -210,9 +224,16 @@
             sincronizarContatos();
         });
 
+        peer.on('error', (err) => {
+            console.error(err);
+            alert("Erro de conexão. Verifique se o ID já está em uso.");
+            document.getElementById('btn-entrar').disabled = false;
+            document.getElementById('btn-entrar').innerText = "ENTRAR NO SISTEMA";
+        });
+
         peer.on('call', call => {
             currentCall = call;
-            setBadge(1); // Ativa badge no ícone do Android
+            setBadge(1);
             document.getElementById('incoming-call').style.display = 'flex';
             const audio = document.getElementById('ringtone');
             audio.src = localStorage.getItem('webgpt_toque') || "https://assets.mixkit.co/active_storage/sfx/1358/1358-preview.mp3";
@@ -220,7 +241,6 @@
         });
     }
 
-    // 2. SISTEMA DE PERMISSÃO DE CÂMERA ROBUSTO
     async function ativarCamera() {
         try {
             if(!localStream) {
@@ -232,19 +252,17 @@
             videoLocal.style.display = 'block';
             await videoLocal.play();
         } catch (err) {
-            console.error("Erro Câmera: ", err);
-            alert("ERRO: Ative as permissões de câmera no Android para continuar.");
+            console.error(err);
         }
     }
 
-    // 3. NOVO FLUXO DE CONTATO: NOME > ID > FOTO
     function novoContatoModal() {
         const nome = prompt("Nome do Amigo:");
         if (!nome) return;
         const idAmigo = prompt("ID do Amigo:");
         if (!idAmigo) return;
 
-        alert("Selecione agora a FOTO DE PERFIL de " + nome);
+        alert("Selecione a foto de " + nome);
         const photoInput = document.getElementById('contact-photo-input');
         
         photoInput.onchange = e => {
@@ -255,7 +273,7 @@
                 database.ref('contatos/' + meuID + '/' + idAmigo).set({
                     nome: nome, id: idAmigo, foto: ev.target.result
                 }).then(() => { 
-                    alert("Salvo com sucesso!"); 
+                    alert("Amigo salvo!"); 
                     toggleMenu(); 
                 });
             };
@@ -269,11 +287,11 @@
             const data = snap.val();
             const render = document.getElementById('contatos-render');
             if(!data) {
-                render.innerHTML = "<p style='color:gray;text-align:center;'>Nenhum contato.</p>";
+                render.innerHTML = "<p style='color:gray;text-align:center;'>Nenhum contato salvo.</p>";
                 return;
             }
             render.innerHTML = Object.values(data).map(c => `
-                <div style="display:flex; align-items:center; gap:15px; padding:15px; border-bottom:1px solid #333; color:white;" onclick="adicionarNaTela('${c.nome}','${c.id}','${c.foto}')">
+                <div style="display:flex; align-items:center; gap:15px; padding:15px; border-bottom:1px solid #333; color:white; cursor:pointer;" onclick="adicionarNaTela('${c.nome}','${c.id}','${c.foto}')">
                     <img src="${c.foto || ''}" style="width:50px; height:50px; border-radius:50%; background:#444; object-fit:cover; border:1px solid var(--primary);">
                     <div><b>${c.nome}</b><br><small>ID: ${c.id}</small></div>
                 </div>
@@ -288,7 +306,7 @@
         card.innerHTML = `
             <img src="${foto || ''}" style="width:60px; height:60px; border-radius:50%; background:#444; border:2px solid var(--primary); object-fit:cover;">
             <div style="color:white; font-size:0.8em; margin:5px 0;">${nome}</div>
-            <button onclick="ligarPara('${id}')" style="background:var(--led-green); border:none; width:100%; border-radius:8px; padding:5px; font-weight:bold;">LIGAR</button>
+            <button onclick="ligarPara('${id}')" style="background:var(--led-green); border:none; width:100%; border-radius:8px; padding:5px; font-weight:bold; cursor:pointer;">LIGAR</button>
         `;
         document.getElementById('contatos-na-tela').appendChild(card);
     }
@@ -308,10 +326,9 @@
         if(currentCall) currentCall.close();
         document.getElementById('video-remote').srcObject = null;
         document.getElementById('led-encerrar').style.display = 'none';
-        setBadge(0); // Limpa badge ao desligar
+        setBadge(0);
     }
 
-    // SLIDER DE ATENDER CHAMADA
     const slider = document.getElementById('slider');
     let startX = 0, moveX = 0;
     slider.onpointerdown = e => { startX = e.clientX; slider.setPointerCapture(e.pointerId); };
@@ -352,12 +369,19 @@
 
     function abrirAgenda() { document.getElementById('list-contatos').style.display = 'block'; }
     
+    // INICIALIZAÇÃO AUTOMÁTICA
     window.onload = () => {
-        const saved = localStorage.getItem('webgpt_id');
-        if(saved) { 
-            document.getElementById('input-id').value = saved; 
+        const savedID = localStorage.getItem('webgpt_id');
+        if(savedID) { 
+            // Se já tem ID, configura a tela e tenta entrar automaticamente
+            document.getElementById('input-id').value = savedID; 
             const led = document.getElementById('led-generator');
             led.style.background = 'var(--led-green)';
+            led.classList.add('locked');
+            document.getElementById('msg-led').innerText = "ID CARREGADO DO SISTEMA";
+            
+            // Auto-login após 1 segundo para garantir carregamento dos scripts
+            setTimeout(() => { entrarNoSistema(); }, 1000);
         }
     };
 </script>
