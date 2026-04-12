@@ -63,16 +63,19 @@
         #screen-login { position: fixed; inset: 0; background: #000; z-index: 20000; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; }
         .btn-gerar { background: none; border: 1px dashed var(--led-blue); color: var(--led-blue); font-size: 11px; padding: 8px; margin-top: 5px; border-radius: 8px; cursor: pointer; width: 80%; }
 
-        /* INTERFACE DE CHAMADA RECEBIDA */
         #incoming-screen { position: fixed; inset: 0; background: rgba(0,0,0,0.95); z-index: 60000; display: none; flex-direction: column; align-items: center; justify-content: space-around; padding: 40px 20px; }
         .slider-container { width: 280px; height: 75px; background: #222; border-radius: 40px; position: relative; display: flex; align-items: center; border: 2px solid #444; overflow: hidden; }
-        .slider-btn { width: 65px; height: 65px; background: var(--led-green); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; cursor: pointer; position: absolute; left: 5px; z-index: 2; }
+        .slider-btn { width: 65px; height: 65px; background: var(--led-green); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; cursor: pointer; position: absolute; left: 5px; z-index: 2; box-shadow: 0 0 15px var(--led-green); }
         .slider-text { width: 100%; text-align: center; color: white; font-size: 12px; font-weight: bold; letter-spacing: 1px; opacity: 0.6; }
+
+        /* Estilo do botão da câmera */
+        #cam-footer-btn { width:50px; height:35px; background:#b30000; border-radius:8px; border:2px solid #500; cursor:pointer; transition: 0.3s; }
+        #cam-footer-btn.active { background: var(--led-green); border-color: #006600; box-shadow: 0 0 10px var(--led-green); }
     </style>
 </head>
 <body onload="verificarAutoPreenchimento()">
 
-<audio id="ringtone" loop>
+<audio id="ringtone" loop preload="auto">
     <source src="https://assets.mixkit.co/active_storage/sfx/1358/1358-preview.mp3" type="audio/mpeg">
 </audio>
 
@@ -95,12 +98,12 @@
              <div id="contatos-render"></div>
         </div>
         <div id="contatos-na-tela"></div>
-        <video id="video-remote" autoplay playsinline></video>
+        <div id="img-persistente-container"></div> <video id="video-remote" autoplay playsinline></video>
         <video id="video-local" autoplay playsinline muted></video>
     </div>
 
     <div class="camera-footer" style="height:60px; display:flex; justify-content:center; align-items:center; background:rgba(0,0,0,0.5);">
-        <div style="width:50px; height:35px; background:#b30000; border-radius:8px; border:2px solid #500; cursor:pointer;" onclick="abrirAgenda()"></div>
+        <div id="cam-footer-btn" onclick="toggleCameraManual()"></div>
     </div>
 </div>
 
@@ -112,9 +115,7 @@
     </div>
     <input type="text" id="input-nome" placeholder="SEU NOME" style="width:80%; padding:12px; margin-top:20px; border-radius:10px; border:1px solid var(--primary); background:#111; color:white; text-align:center;">
     <input type="number" id="input-id" oninput="buscarDadosAuto(this.value)" placeholder="ID ÚNICO" style="width:80%; padding:12px; margin-top:10px; border-radius:10px; background:#222; color:var(--led-green); text-align:center; font-weight:bold;">
-    
     <button class="btn-gerar" onclick="gerarIdNovo()">✨ GERAR NOVO ID ÚNICO</button>
-    
     <p id="erro-device" style="color:red; font-size:10px; display:none; margin-top:10px;">Este ID pertence a outro celular!</p>
     <button onclick="entrar()" style="width:80%; padding:15px; margin-top:20px; background:var(--primary); color:white; border:none; border-radius:15px; font-weight:bold;">ACESSAR</button>
 </div>
@@ -124,12 +125,10 @@
         <img id="caller-photo" src="" style="width: 130px; height: 130px; border-radius: 50%; border: 4px solid var(--led-green); object-fit: cover; background: #333;">
         <h2 id="caller-name" style="color: white; margin-top: 20px; font-size: 24px;">Chamada...</h2>
     </div>
-
     <div class="slider-container" id="slider-track">
         <div class="slider-text">ARRASTE PARA ATENDER</div>
         <div id="slider-handle" class="slider-btn">📞</div>
     </div>
-
     <button onclick="recusarChamada()" style="background: #ff0000; color: white; border: none; width: 80%; padding: 18px; border-radius: 40px; font-weight: bold; font-size: 16px;">DESLIGAR</button>
 </div>
 
@@ -157,23 +156,16 @@
     let peer, localStream, currentCall, meuID = "", minhaFoto = "", meuNome = "";
     let ringtone = document.getElementById('ringtone');
 
-    // AUTO-PREENCHIMENTO LOCAL
     function verificarAutoPreenchimento() {
         const idSalvo = localStorage.getItem('last_id');
         const nomeSalvo = localStorage.getItem('last_nome');
-        if(idSalvo) {
-            document.getElementById('input-id').value = idSalvo;
-            buscarDadosAuto(idSalvo);
-        }
+        if(idSalvo) { document.getElementById('input-id').value = idSalvo; buscarDadosAuto(idSalvo); }
         if(nomeSalvo) document.getElementById('input-nome').value = nomeSalvo;
     }
 
     function getDeviceFingerprint() {
         let key = localStorage.getItem('netbase_device_id');
-        if (!key) {
-            key = 'DEV-' + Math.random().toString(36).substr(2, 9).toUpperCase();
-            localStorage.setItem('netbase_device_id', key);
-        }
+        if (!key) { key = 'DEV-' + Math.random().toString(36).substr(2, 9).toUpperCase(); localStorage.setItem('netbase_device_id', key); }
         return key;
     }
     const myFingerprint = getDeviceFingerprint();
@@ -181,7 +173,6 @@
     function gerarIdNovo() {
         const novoId = Math.floor(100000 + Math.random() * 900000);
         document.getElementById('input-id').value = novoId;
-        document.getElementById('erro-device').style.display = 'none';
     }
 
     function buscarDadosAuto(id) {
@@ -205,7 +196,9 @@
         meuNome = document.getElementById('input-nome').value;
         if(!meuID || !meuNome) return alert("Preencha Nome e ID");
 
-        // Salva localmente para facilitar login
+        // "Acorda" o som para o navegador permitir toque automático depois
+        ringtone.play().then(() => ringtone.pause()).catch(() => {});
+
         localStorage.setItem('last_id', meuID);
         localStorage.setItem('last_nome', meuNome);
 
@@ -215,33 +208,22 @@
                 document.getElementById('erro-device').style.display = 'block';
                 return;
             }
-
-            database.ref('perfis/'+meuID).update({ 
-                nome: meuNome, 
-                foto: minhaFoto, 
-                fingerprint: myFingerprint 
-            });
-
+            database.ref('perfis/'+meuID).update({ nome: meuNome, foto: minhaFoto, fingerprint: myFingerprint });
             peer = new Peer(meuID);
             peer.on('open', () => {
                 document.getElementById('screen-login').style.display = 'none';
                 document.getElementById('label-nome-topo').innerText = meuNome;
                 document.getElementById('label-id-topo').innerText = "ID: " + meuID;
                 if(minhaFoto) document.getElementById('header-pic-circle').src = minhaFoto;
-                ativarCamera(); sincronizarContatos();
+                sincronizarContatos();
             });
-
-            // LOGICA DE RECEBER CHAMADA
-            peer.on('call', call => {
-                incomingCallInterface(call);
-            });
+            peer.on('call', call => { incomingCallInterface(call); });
         });
     }
 
     function incomingCallInterface(call) {
-        ringtone.play();
-        if (navigator.vibrate) navigator.vibrate([500, 300, 500, 300, 500]);
-        
+        ringtone.play().catch(e => console.log("Erro som:", e));
+        if (navigator.vibrate) navigator.vibrate([1000, 500, 1000, 500, 1000]);
         document.getElementById('incoming-screen').style.display = 'flex';
         database.ref('perfis/' + call.peer).once('value', s => {
             if(s.exists()){
@@ -249,23 +231,16 @@
                 document.getElementById('caller-photo').src = s.val().foto;
             }
         });
-
-        // SLIDER LOGIC
         const handle = document.getElementById('slider-handle');
         const track = document.getElementById('slider-track');
         let isMoving = false;
-
         handle.ontouchstart = () => isMoving = true;
         handle.ontouchmove = (e) => {
             if(!isMoving) return;
             let x = e.touches[0].clientX - track.getBoundingClientRect().left - 32;
-            if(x < 5) x = 5;
-            if(x > 210) x = 210;
+            if(x < 5) x = 5; if(x > 210) x = 210;
             handle.style.left = x + "px";
-            if(x >= 205) {
-                isMoving = false;
-                atender(call);
-            }
+            if(x >= 205) { isMoving = false; atender(call); }
         };
         handle.ontouchend = () => { isMoving = false; handle.style.left = "5px"; };
     }
@@ -273,40 +248,54 @@
     function atender(call) {
         pararToque();
         document.getElementById('incoming-screen').style.display = 'none';
-        call.answer(localStream);
-        call.on('stream', s => { document.getElementById('video-remote').srcObject = s; });
-        currentCall = call;
+        ativarCamera().then(() => {
+            call.answer(localStream);
+            call.on('stream', s => { document.getElementById('video-remote').srcObject = s; });
+            currentCall = call;
+        });
     }
 
-    function recusarChamada() {
-        pararToque();
-        document.getElementById('incoming-screen').style.display = 'none';
-        if(currentCall) currentCall.close();
-    }
+    function recusarChamada() { pararToque(); document.getElementById('incoming-screen').style.display = 'none'; if(currentCall) currentCall.close(); }
+    function pararToque() { ringtone.pause(); ringtone.currentTime = 0; if(navigator.vibrate) navigator.vibrate(0); }
 
-    function pararToque() {
-        ringtone.pause();
-        ringtone.currentTime = 0;
-        if(navigator.vibrate) navigator.vibrate(0);
-    }
-
-    // ... RESTANTE DAS FUNÇÕES ORIGINAIS ...
+    // FUNÇÃO DA IMAGEM PERSISTENTE
     function imgParaTela(input) {
         const reader = new FileReader();
         reader.onload = e => {
+            const container = document.getElementById('img-persistente-container');
+            container.innerHTML = ""; // Limpa a foto anterior antes de colocar a nova
             const card = document.createElement('div');
             card.className = 'floating-img';
             card.innerHTML = `<img src="${e.target.result}"><button class="btn-sair-foto" onclick="this.parentElement.remove()">SAIR DA TELA</button>`;
-            document.getElementById('contatos-na-tela').appendChild(card);
+            container.appendChild(card);
             fecharPerfil();
         };
         reader.readAsDataURL(input.files[0]);
     }
 
-    function abrirConfigPerfil() {
-        document.getElementById('img-full-edit').src = minhaFoto || "";
-        document.getElementById('view-perfil-full').style.display = 'flex';
+    async function toggleCameraManual() {
+        const btn = document.getElementById('cam-footer-btn');
+        if(!localStream) {
+            await ativarCamera();
+            btn.classList.add('active');
+        } else {
+            localStream.getTracks().forEach(t => t.stop());
+            localStream = null;
+            document.getElementById('video-local').style.display = 'none';
+            btn.classList.remove('active');
+        }
     }
+
+    async function ativarCamera() {
+        try {
+            localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+            document.getElementById('video-local').srcObject = localStream;
+            document.getElementById('video-local').style.display = 'block';
+            document.getElementById('cam-footer-btn').classList.add('active');
+        } catch(e) { alert("Câmera bloqueada"); }
+    }
+
+    function abrirConfigPerfil() { document.getElementById('img-full-edit').src = minhaFoto || ""; document.getElementById('view-perfil-full').style.display = 'flex'; }
     function fecharPerfil() { document.getElementById('view-perfil-full').style.display = 'none'; }
     
     function processarFoto(input, modo) {
@@ -325,8 +314,6 @@
         };
         reader.readAsDataURL(input.files[0]);
     }
-
-    async function ativarCamera() { try { localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true }); document.getElementById('video-local').srcObject = localStream; document.getElementById('video-local').style.display = 'block'; } catch(e) {} }
 
     function sincronizarContatos() {
         database.ref('agenda/' + meuID).on('value', snap => {
