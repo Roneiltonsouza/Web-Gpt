@@ -12,59 +12,44 @@
         * { box-sizing: border-box; touch-action: none; outline: none; -webkit-tap-highlight-color: transparent; }
         html, body { margin: 0; padding: 0; width: 100%; height: 100%; background: #000; font-family: sans-serif; overflow: hidden; position: fixed; }
 
-        .app-main { display: flex; flex-direction: column; width: 100%; height: 100%; background: #000; position: relative; }
+        .app-main { display: flex; flex-direction: column; width: 100%; height: 100%; background: #000; }
 
-        /* CABEÇALHO (DIVISÃO FIXA) */
+        /* DIVISÃO DO CABEÇALHO */
         .notch-container { 
-            display: flex; flex-direction: column; align-items: center; z-index: 10000; 
-            background: #000; padding-bottom: 5px; border-bottom: 1px solid #333;
+            display: flex; flex-direction: column; align-items: center; 
+            z-index: 10000; background: #000; padding-bottom: 8px;
         }
         .notch { 
             width: 210px; height: 45px; 
             background: linear-gradient(90deg, #000 0%, #fff 33%, #ffa500 66%, #800080 100%);
             border-bottom-left-radius: 25px; border-bottom-right-radius: 25px; 
-            overflow: hidden; border: 2px solid #333;
-            display: flex; align-items: center; justify-content: center; cursor: pointer;
-            gap: 10px; padding: 0 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            border: 2px solid #333; display: flex; align-items: center; justify-content: center; gap: 10px;
         }
         
-        #led-encerrar { 
-            display: none; color: var(--led-blue); font-size: 11px; font-weight: bold; 
-            margin-top: 5px; animation: blink-led 1s infinite; cursor: pointer; 
-            text-shadow: 0 0 5px var(--led-blue); padding: 5px;
-        }
-
-        /* ÁREA DE VÍDEO E TELA (AZUL) */
+        /* DIVISÃO DA TELA (AZUL) */
         .visor { 
             flex: 1; position: relative; overflow: hidden; 
             background: linear-gradient(180deg, #1e56a0 0%, #163e75 100%); 
         }
-        
-        /* VÍDEO EM TODA A TELA */
+
+        /* VÍDEO EM TODA A TELA AZUL */
         #video-remote { 
             position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
-            object-fit: cover; z-index: 1; background: transparent;
+            object-fit: cover; z-index: 1; 
         }
         
         #video-local { 
-            width: 90px; height: 130px; position: absolute; top: 10px; right: 10px; 
-            border: 2px solid var(--primary); z-index: 1000; display: none; 
-            border-radius: 12px; object-fit: cover; background: #000;
+            width: 85px; height: 120px; position: absolute; top: 10px; right: 10px; 
+            border: 2px solid var(--primary); z-index: 100; display: none; border-radius: 12px; object-fit: cover; 
         }
 
-        /* ELEMENTOS FLUTUANTES */
-        #contatos-na-tela { position: absolute; inset: 0; z-index: 500; pointer-events: none; }
+        #contatos-na-tela { position: absolute; inset: 0; z-index: 50; pointer-events: none; }
         .floating-contact, .floating-img { 
-            position: absolute; width: 110px; background: rgba(0,0,0,0.85); 
-            border-radius: 15px; padding: 10px; text-align: center; 
-            border: 1px solid var(--primary); pointer-events: auto;
+            position: absolute; width: 120px; background: rgba(0,0,0,0.85); 
+            border-radius: 15px; padding: 10px; text-align: center; border: 1px solid var(--primary); 
+            pointer-events: auto; z-index: 60;
         }
-        .floating-img { width: 150px; } /* Imagens maiores e fixas */
         .floating-img img { width: 100%; border-radius: 10px; display: block; }
-
-        @keyframes blink-btn { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
-        @keyframes blink-led { 0% { opacity: 1; } 50% { opacity: 0; } 100% { opacity: 1; } }
-        .blink-call { animation: blink-btn 0.8s infinite; }
 
         .aba-menu {
             position: absolute; left: 0; top: 130px; background: var(--primary);
@@ -73,8 +58,16 @@
             cursor: pointer; z-index: 9500; border: 1px solid var(--led-blue);
         }
 
+        #led-encerrar { 
+            display: none; color: var(--led-blue); font-size: 10px; font-weight: bold; 
+            margin-top: 5px; animation: blink-led 1s infinite; text-shadow: 0 0 5px var(--led-blue);
+        }
+        @keyframes blink-led { 0% { opacity: 1; } 50% { opacity: 0; } 100% { opacity: 1; } }
+
+        #screen-login { position: fixed; inset: 0; background: #000; z-index: 20000; display: flex; flex-direction: column; align-items: center; justify-content: center; }
         #view-perfil-full { position: fixed; inset: 0; background: rgba(0,0,0,0.98); z-index: 50000; display: none; flex-direction: column; align-items: center; justify-content: center; }
-        #screen-login { position: fixed; inset: 0; background: #000; z-index: 20000; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; }
+        .dropdown-menu { position: absolute; top: 130px; left: 0; background: rgba(0,0,0,0.95); border: 1px solid var(--primary); border-radius: 0 15px 15px 0; width: 200px; display: none; z-index: 11000; }
+        .dropdown-item { padding: 15px; border-bottom: 1px solid #222; color: var(--orange); font-weight: bold; }
     </style>
 </head>
 <body>
@@ -84,8 +77,8 @@
         <div class="notch" onclick="abrirConfigPerfil()">
             <img id="header-pic-circle" src="" style="width:32px; height:32px; border-radius:50%; object-fit:cover; border:2px solid #000;">
             <div class="info-notch">
-                <span class="label-perfil" id="label-nome-topo" style="color:#000; font-size:11px; font-weight:bold;">PERFIL</span>
-                <span class="id-notch" id="label-id-topo" style="color:#000; font-size:10px; font-weight:bold;">ID: ---</span>
+                <span id="label-nome-topo" style="color:#000; font-size:11px; font-weight:bold;">PERFIL</span>
+                <span id="label-id-topo" style="color:#000; font-size:10px; font-weight:bold; display:block;">ID: ---</span>
             </div>
         </div>
         <div id="led-encerrar" onclick="encerrarChamada()">ENCERRAR LIGAÇÃO ●</div>
@@ -104,23 +97,29 @@
         </div>
     </div>
 
-    <div class="camera-footer" style="height:60px; display:flex; justify-content:center; align-items:center; background:#000; border-top: 1px solid #333;">
+    <div class="camera-footer" style="height:60px; display:flex; justify-content:center; align-items:center; background:#000; border-top:1px solid #222;">
         <div style="width:50px; height:35px; background:#b30000; border-radius:8px; border:2px solid #500; cursor:pointer;" onclick="abrirAgenda()"></div>
     </div>
 </div>
 
-<div id="view-perfil-full">
-    <img id="img-full-edit" src="" style="width:180px; height:180px; border-radius:20px; border:3px solid var(--orange); object-fit: cover;">
-    <button onclick="document.getElementById('change-photo-input').click()" style="width:80%; padding:15px; margin-top:10px; border-radius:12px; background:var(--primary); color:white; font-weight:bold;">MUDAR MINHA FOTO</button>
-    <button onclick="document.getElementById('gallery-to-screen').click()" style="width:80%; padding:15px; margin-top:10px; border-radius:12px; background:var(--orange); color:black; font-weight:bold;">ADICIONAR IMAGEM NA TELA</button>
-    <button onclick="fecharPerfil()" style="width:80%; padding:15px; margin-top:30px; border-radius:12px; background:#333; color:white; font-weight:bold;">FECHAR</button>
-</div>
-
 <div id="screen-login">
     <h2 style="color:var(--primary)">WEB GPT PRO</h2>
-    <input type="text" id="input-nome" placeholder="SEU NOME" style="width:80%; padding:12px; margin-top:20px; border-radius:10px; background:#111; color:white; text-align:center; border:1px solid var(--primary);">
-    <input type="number" id="input-id" placeholder="DIGITE SEU ID" style="width:80%; padding:12px; margin-top:10px; border-radius:10px; background:#222; color:var(--led-green); text-align:center; font-weight:bold; border:none;">
+    <input type="text" id="input-nome" placeholder="NOME" style="width:80%; padding:12px; margin-top:20px; border-radius:10px; background:#111; color:white; border:1px solid var(--primary); text-align:center;">
+    <input type="number" id="input-id" oninput="buscarDadosAuto(this.value)" placeholder="ID" style="width:80%; padding:12px; margin-top:10px; border-radius:10px; background:#222; color:var(--led-green); text-align:center;">
     <button onclick="entrar()" style="width:80%; padding:15px; margin-top:30px; background:var(--primary); color:white; border:none; border-radius:15px; font-weight:bold;">ACESSAR</button>
+</div>
+
+<div id="view-perfil-full">
+    <img id="img-full-edit" src="" style="width:180px; height:180px; border-radius:20px; border:3px solid var(--orange); object-fit:cover;">
+    <button class="btn-perfil-opt" style="background:var(--primary); color:white;" onclick="document.getElementById('change-photo-input').click()">MUDAR FOTO</button>
+    <button class="btn-perfil-opt" style="background:var(--orange); color:black;" onclick="document.getElementById('gallery-to-screen').click()">IMAGEM NA TELA</button>
+    <button class="btn-perfil-opt" style="background:#333; color:white;" onclick="fecharPerfil()">FECHAR</button>
+</div>
+
+<div id="menu-dropdown" class="dropdown-menu">
+    <div class="dropdown-item" onclick="abrirAgenda()">📂 AGENDA</div>
+    <div class="dropdown-item" onclick="novoContatoModal()">👤 NOVO CONTATO</div>
+    <div class="dropdown-item" style="color:red" onclick="toggleMenu()">✖ FECHAR</div>
 </div>
 
 <input type="file" id="change-photo-input" accept="image/*" style="display:none" onchange="processarFoto(this)">
@@ -135,8 +134,7 @@
     async function entrar() {
         meuID = document.getElementById('input-id').value;
         meuNome = document.getElementById('input-nome').value;
-        if(!meuID || !meuNome) return alert("Preencha Nome e ID");
-
+        if(!meuID || !meuNome) return;
         peer = new Peer(meuID);
         peer.on('open', () => {
             document.getElementById('screen-login').style.display = 'none';
@@ -145,7 +143,7 @@
             ativarCamera(); sincronizarContatos();
         });
         peer.on('call', call => {
-            if(confirm("Atender vídeo?")) {
+            if(confirm("Atender?")) {
                 call.answer(localStream);
                 call.on('stream', s => { document.getElementById('video-remote').srcObject = s; });
                 currentCall = call;
@@ -154,8 +152,8 @@
         });
     }
 
-    function ligarPara(id, btnElement) {
-        btnElement.style.visibility = "hidden"; 
+    function ligarPara(id, btn) {
+        btn.style.visibility = "hidden";
         document.getElementById('led-encerrar').style.display = 'block';
         const call = peer.call(id, localStream);
         call.on('stream', s => { document.getElementById('video-remote').srcObject = s; });
@@ -174,28 +172,25 @@
         reader.onload = e => {
             const card = document.createElement('div');
             card.className = 'floating-img';
-            card.style.top = "100px"; card.style.left = "50px";
-            card.innerHTML = `<img src="${e.target.result}"><button onclick="this.parentElement.remove()" style="width:100%; background:red; color:white; border:none; border-radius:5px; font-size:10px; margin-top:5px; padding:5px;">REMOVER</button>`;
+            card.style.top = "150px"; card.style.left = "50px";
+            card.innerHTML = `<img src="${e.target.result}"><button onclick="this.parentElement.remove()" style="width:100%; background:red; color:white; border:none; border-radius:5px; font-size:10px; margin-top:5px; padding:5px;">SAIR</button>`;
             
-            // Movimentação simples
-            let startX = 0;
-            card.ontouchstart = (ev) => startX = ev.touches[0].clientX;
-            card.ontouchmove = (ev) => {
-                let dist = ev.touches[0].clientX - startX;
-                if(dist > 100) { card.style.transform = "translateX(300px)"; setTimeout(() => card.remove(), 300); }
+            let startX = 0; card.ontouchstart = ev => startX = ev.touches[0].clientX;
+            card.ontouchmove = ev => {
+                if(ev.touches[0].clientX - startX > 80) { card.style.transform = "translateX(250%)"; setTimeout(() => card.remove(), 250); }
             };
             document.getElementById('contatos-na-tela').appendChild(card);
             fecharPerfil();
         };
-        reader.readAsAsDataURL(input.files[0]);
+        reader.readAsDataURL(input.files[0]);
     }
 
     function fixarNaTela(nome, id, foto) {
         document.getElementById('list-contatos').style.display = 'none';
         const card = document.createElement('div');
         card.className = 'floating-contact';
-        card.style.top = "50px"; card.style.left = "20px";
-        card.innerHTML = `<img src="${foto}" style="width:50px; height:50px; border-radius:50%; object-fit:cover;"><div style="color:white; font-size:10px;">${nome}</div><button onclick="ligarPara('${id}', this)" class="blink-call" style="background:var(--led-green); border:none; border-radius:5px; padding:5px 10px; font-weight:bold; font-size:10px;">LIGAR</button>`;
+        card.style.top = "100px"; card.style.left = "20px";
+        card.innerHTML = `<img src="${foto}" style="width:50px; height:50px; border-radius:50%; object-fit:cover;"><div style="color:white; font-size:10px;">${nome}</div><button onclick="ligarPara('${id}', this)" class="blink-call" style="background:var(--led-green); border:none; border-radius:5px; padding:5px; font-weight:bold; font-size:10px; margin-top:5px;">LIGAR</button>`;
         document.getElementById('contatos-na-tela').appendChild(card);
     }
 
@@ -203,7 +198,7 @@
     function abrirAgenda() { document.getElementById('list-contatos').style.display = 'block'; }
     function abrirConfigPerfil() { document.getElementById('view-perfil-full').style.display = 'flex'; }
     function fecharPerfil() { document.getElementById('view-perfil-full').style.display = 'none'; }
-    function toggleMenu() { alert("Menu"); }
+    function toggleMenu() { const m = document.getElementById('menu-dropdown'); m.style.display = (m.style.display === 'block') ? 'none' : 'block'; }
     function sincronizarContatos() {
         database.ref('agenda/' + meuID).on('value', snap => {
             const render = document.getElementById('contatos-render'); render.innerHTML = "";
