@@ -23,7 +23,7 @@
             display: flex; align-items: center; justify-content: center; cursor: pointer;
             gap: 10px; padding: 0 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.5);
         }
-        #header-pic-circle { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; border: 2px solid #000; display: none; }
+        #header-pic-circle { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; border: 2px solid #000; }
         .info-notch { display: flex; flex-direction: column; }
         .label-perfil { color: #000; font-size: 11px; font-weight: bold; text-shadow: 1px 1px 0px rgba(255,255,255,0.5); }
         .id-notch { color: #000; font-size: 10px; font-weight: bold; font-family: monospace; }
@@ -36,8 +36,8 @@
         }
 
         .visor { flex: 1; position: relative; overflow: hidden; margin-top: 10px; }
-        #video-remote { width: 100%; height: 100%; object-fit: cover; position: absolute; top: 0; left: 0; z-index: 1; background: #111; }
-        #video-local { width: 85px; height: 120px; position: absolute; top: 10px; right: 10px; border: 2px solid var(--primary); z-index: 100; display: none; border-radius: 12px; object-fit: cover; background: #222; }
+        #video-remote { width: 100%; height: 100%; object-fit: cover; position: absolute; top: 0; left: 0; z-index: 1; }
+        #video-local { width: 85px; height: 120px; position: absolute; top: 10px; right: 10px; border: 2px solid var(--primary); z-index: 100; display: none; border-radius: 12px; object-fit: cover; }
 
         #view-perfil-full { 
             position: fixed; inset: 0; background: rgba(0,0,0,0.98); 
@@ -59,10 +59,7 @@
         .dropdown-menu { position: absolute; top: 130px; left: 0; background: rgba(0,0,0,0.95); border: 1px solid var(--primary); border-radius: 0 15px 15px 0; width: 200px; display: none; z-index: 11000; }
         .dropdown-item { padding: 15px; border-bottom: 1px solid #222; color: var(--orange); font-size: 0.9em; font-weight: bold; }
         #list-contatos { display:none; position:absolute; inset:0; background:rgba(0,0,0,0.98); z-index:15000; padding:20px; overflow-y: auto; }
-        
         #screen-login { position: fixed; inset: 0; background: #000; z-index: 20000; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; }
-        
-        .btn-gen-id { background: none; border: 1px solid var(--led-blue); color: var(--led-blue); padding: 5px 10px; font-size: 10px; margin-top: 8px; border-radius: 5px; cursor: pointer; }
     </style>
 </head>
 <body>
@@ -110,16 +107,14 @@
 
 <div id="screen-login">
     <h2 style="color:var(--primary)">WEB GPT PRO</h2>
-    <div onclick="document.getElementById('my-photo-input').click()" style="width:100px; height:100px; border-radius:50%; border:3px solid #fff; display:flex; align-items:center; justify-content:center; overflow:hidden; background: #222;">
+    <div onclick="document.getElementById('my-photo-input').click()" style="width:100px; height:100px; border-radius:50%; border:3px solid #fff; display:flex; align-items:center; justify-content:center; overflow:hidden;">
         <img id="preview-foto-login" src="" style="display:none; width:100%; height:100%; object-fit:cover;">
         <span id="txt-add" style="color:white; font-size:12px;">FOTO</span>
     </div>
     <input type="text" id="input-nome" placeholder="SEU NOME" style="width:80%; padding:12px; margin-top:20px; border-radius:10px; border:1px solid var(--primary); background:#111; color:white; text-align:center;">
     <input type="number" id="input-id" oninput="buscarDadosAuto(this.value)" placeholder="DIGITE SEU ID" style="width:80%; padding:12px; margin-top:10px; border-radius:10px; background:#222; color:var(--led-green); text-align:center; font-weight:bold;">
-    
-    <button class="btn-gen-id" onclick="gerarIDNovo()">GERAR ID ÚNICO</button>
-    
-    <button onclick="entrar()" style="width:80%; padding:15px; margin-top:20px; background:var(--primary); color:white; border:none; border-radius:15px; font-weight:bold;">ACESSAR</button>
+    <p id="msg-erro" style="color:red; font-size:10px; margin-top:10px; display:none;">Este ID pertence a outro dispositivo!</p>
+    <button onclick="entrar()" style="width:80%; padding:15px; margin-top:30px; background:var(--primary); color:white; border:none; border-radius:15px; font-weight:bold;">ACESSAR</button>
 </div>
 
 <input type="file" id="my-photo-input" accept="image/*" style="display:none" onchange="processarFoto(this, 'login')">
@@ -127,25 +122,30 @@
 <input type="file" id="gallery-to-screen" accept="image/*" style="display:none" onchange="imgParaTela(this)">
 
 <script>
-    // CONFIGURAÇÃO FIREBASE
-    const firebaseConfig = { 
-        apiKey: "AIzaJ4WY8pvL7cAgXIZpSkIDk1Oy4rbsb92mgNN", 
-        databaseURL: "https://netbase-cloud-default-rtdb.firebaseio.com/" 
-    };
+    // Configurações
+    const firebaseConfig = { apiKey: "AIzaJ4WY8pvL7cAgXIZpSkIDk1Oy4rbsb92mgNN", databaseURL: "https://netbase-cloud-default-rtdb.firebaseio.com/" };
     firebase.initializeApp(firebaseConfig);
     const database = firebase.database();
-
     let peer, localStream, currentCall, meuID = "", minhaFoto = "", meuNome = "";
-    const deviceSignature = navigator.userAgent + screen.width;
 
-    // BUSCA AUTOMÁTICA DE PERFIL EXISTENTE
+    // FUNÇÃO DE SEGURANÇA: GERA CHAVE ÚNICA DO CELULAR
+    function obterChaveDispositivo() {
+        let chave = localStorage.getItem('device_key');
+        if (!chave) {
+            chave = 'DEV-' + Math.random().toString(36).substr(2, 9).toUpperCase();
+            localStorage.setItem('device_key', chave);
+        }
+        return chave;
+    }
+
+    const deviceKey = obterChaveDispositivo();
+
     function buscarDadosAuto(id) {
         if(id.length < 3) return;
-        database.ref('perfis/' + id).once('value', snap => {
+        database.ref('perfis/'+id).once('value', snap => {
             if(snap.exists()){
                 const d = snap.val();
                 document.getElementById('input-nome').value = d.nome;
-                meuNome = d.nome; // Sincroniza variável global
                 if(d.foto) { 
                     minhaFoto = d.foto; 
                     document.getElementById('preview-foto-login').src = d.foto; 
@@ -156,43 +156,37 @@
         });
     }
 
-    function gerarIDNovo() {
-        const novoID = Math.floor(100000 + Math.random() * 900000);
-        document.getElementById('input-id').value = novoID;
-    }
-
-    // LOGICA PRINCIPAL DE LOGIN E TRAVA
     async function entrar() {
         meuID = document.getElementById('input-id').value;
         meuNome = document.getElementById('input-nome').value;
-
+        const msgErro = document.getElementById('msg-erro');
+        
         if(!meuID || !meuNome) return alert("Preencha Nome e ID");
 
-        const userRef = database.ref('perfis/' + meuID);
-        const snap = await userRef.once('value');
-
-        if(snap.exists()){
+        // VALIDAÇÃO DE ID ÚNICO POR DISPOSITIVO
+        database.ref('perfis/' + meuID).once('value', snap => {
             const dados = snap.val();
-            // Verifica se o ID está travado em outro dispositivo
-            if(dados.device_lock && dados.device_lock !== deviceSignature){
-                alert("ERRO: Este ID pertence a outro dispositivo!");
+            
+            // Se o perfil já existe e a chave do dispositivo é diferente, bloqueia
+            if (dados && dados.devKey && dados.devKey !== deviceKey) {
+                msgErro.style.display = 'block';
+                alert("Acesso Negado: Este ID já está vinculado a outro celular.");
                 return;
             }
-            // Atualiza trava se não existir
-            if(!dados.device_lock) await userRef.update({ device_lock: deviceSignature });
-        } else {
-            // Primeiro registro: Tranca o ID neste celular
-            await userRef.set({ nome: meuNome, foto: minhaFoto, device_lock: deviceSignature });
-        }
 
-        // Atualiza dados no banco e inicia PeerJS
-        await userRef.update({ nome: meuNome, foto: minhaFoto });
-        conectarPeer();
+            // Se for novo ou o dono, salva/atualiza com a chave do dispositivo
+            database.ref('perfis/' + meuID).update({ 
+                nome: meuNome, 
+                foto: minhaFoto,
+                devKey: deviceKey 
+            });
+
+            iniciarSessao();
+        });
     }
 
-    function conectarPeer() {
+    function iniciarSessao() {
         peer = new Peer(meuID);
-        
         peer.on('open', () => {
             document.getElementById('screen-login').style.display = 'none';
             document.getElementById('label-nome-topo').innerText = meuNome;
@@ -206,37 +200,15 @@
         });
 
         peer.on('call', call => {
-            if(confirm("Chamada recebida. Atender?")) {
+            if(confirm("Atender vídeo?")) {
                 call.answer(localStream);
                 call.on('stream', s => { document.getElementById('video-remote').srcObject = s; });
                 currentCall = call;
             }
         });
-
-        peer.on('error', err => {
-            if(err.type === 'unavailable-id') alert("Este ID já está conectado em outro lugar.");
-            else alert("Erro de conexão: " + err.type);
-        });
     }
 
-    // PROCESSAMENTO DE FOTOS
-    function processarFoto(input, modo) {
-        const reader = new FileReader();
-        reader.onload = e => {
-            minhaFoto = e.target.result;
-            if(modo === 'login') { 
-                document.getElementById('preview-foto-login').src = minhaFoto; 
-                document.getElementById('preview-foto-login').style.display = 'block'; 
-                document.getElementById('txt-add').style.display = 'none'; 
-            } else { 
-                document.getElementById('img-full-edit').src = minhaFoto; 
-                document.getElementById('header-pic-circle').src = minhaFoto; 
-                database.ref('perfis/' + meuID).update({ foto: minhaFoto }); 
-            }
-        };
-        reader.readAsDataURL(input.files[0]);
-    }
-
+    // Funções de Interface (Mantidas Originais)
     function imgParaTela(input) {
         const reader = new FileReader();
         reader.onload = e => {
@@ -249,33 +221,46 @@
         reader.readAsDataURL(input.files[0]);
     }
 
-    // CONTROLE DE INTERFACE
     function abrirConfigPerfil() {
         document.getElementById('img-full-edit').src = minhaFoto || "";
         document.getElementById('view-perfil-full').style.display = 'flex';
     }
     function fecharPerfil() { document.getElementById('view-perfil-full').style.display = 'none'; }
-    function toggleMenu() { const m = document.getElementById('menu-dropdown'); m.style.display = (m.style.display === 'block') ? 'none' : 'block'; }
-    function abrirAgenda() { document.getElementById('list-contatos').style.display = 'block'; }
+    
+    function processarFoto(input, modo) {
+        const reader = new FileReader();
+        reader.onload = e => {
+            minhaFoto = e.target.result;
+            if(modo === 'login') { 
+                document.getElementById('preview-foto-login').src = minhaFoto; 
+                document.getElementById('preview-foto-login').style.display = 'block'; 
+                document.getElementById('txt-add').style.display = 'none'; 
+            } else { 
+                document.getElementById('img-full-edit').src = minhaFoto; 
+                document.getElementById('header-pic-circle').src = minhaFoto; 
+                database.ref('perfis/'+meuID).update({ foto: minhaFoto }); 
+            }
+        };
+        reader.readAsDataURL(input.files[0]);
+    }
 
-    // CÂMERA E CHAMADAS
     async function ativarCamera() { 
         try { 
             localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true }); 
             document.getElementById('video-local').srcObject = localStream; 
             document.getElementById('video-local').style.display = 'block'; 
-        } catch(e) { alert("Erro ao acessar câmera."); } 
+        } catch(e) { console.log("Erro câmera:", e); } 
     }
 
     function sincronizarContatos() {
         database.ref('agenda/' + meuID).on('value', snap => {
-            const render = document.getElementById('contatos-render'); render.innerHTML = "";
+            const render = document.getElementById('contatos-render'); 
+            render.innerHTML = "";
             snap.forEach(c => {
                 const con = c.val();
-                render.innerHTML += `
-                <div style="display:flex; align-items:center; justify-content:space-between; padding:12px; border-bottom:1px solid #333;">
-                    <div style="display:flex; align-items:center; gap:10px; color:white; cursor:pointer;" onclick="fixarNaTela('${con.nome}','${con.id}','${con.foto}')">
-                        <img src="${con.foto || ''}" style="width:40px; height:40px; border-radius:50%; object-fit:cover; background:#333;">
+                render.innerHTML += `<div style="display:flex; align-items:center; justify-content:space-between; padding:12px; border-bottom:1px solid #333;">
+                    <div style="display:flex; align-items:center; gap:10px; color:white;" onclick="fixarNaTela('${con.nome}','${con.id}','${con.foto}')">
+                        <img src="${con.foto}" style="width:40px; height:40px; border-radius:50%; object-fit:cover;">
                         <b>${con.nome}</b>
                     </div>
                     <button onclick="excluirContato('${con.id}')" style="background:none; border:none; color:red; font-weight:bold;">X</button>
@@ -289,25 +274,27 @@
         const card = document.createElement('div');
         card.className = 'floating-contact';
         card.style.top = "150px"; card.style.left = "30px";
-        card.innerHTML = `<img src="${foto}" style="width:50px; height:50px; border-radius:50%; object-fit:cover; background:#222;"><div style="color:white; font-size:10px; margin:5px 0;">${nome}</div><button onclick="ligarPara('${id}')" style="background:var(--led-green); border:none; border-radius:5px; padding:3px 8px; font-weight:bold; font-size:9px; cursor:pointer;">LIGAR</button>`;
+        card.innerHTML = `<img src="${foto}" style="width:50px; height:50px; border-radius:50%; object-fit:cover;"><div style="color:white; font-size:10px;">${nome}</div><button onclick="ligarPara('${id}')" style="background:var(--led-green); border:none; border-radius:5px; padding:3px 8px; font-weight:bold; font-size:9px;">LIGAR</button>`;
         
         let startX = 0; 
         card.ontouchstart = (e) => startX = e.touches[0].clientX;
         card.ontouchmove = (e) => { 
-            let move = e.touches[0].clientX - startX;
-            if(move > 80) { card.style.transform = "translateX(250%)"; setTimeout(() => card.remove(), 200); } 
+            if(e.touches[0].clientX - startX > 60) { 
+                card.style.transform = "translateX(250%)"; 
+                setTimeout(() => card.remove(), 200); 
+            } 
         };
         document.getElementById('contatos-na-tela').appendChild(card);
     }
 
     function novoContatoModal() { 
-        const n = prompt("Nome do Contato:"); 
-        const i = prompt("ID Único do Contato:"); 
+        const n = prompt("Nome:"); 
+        const i = prompt("ID:"); 
         if(n && i) {
-            database.ref('perfis/' + i).once('value', s => { 
+            database.ref('perfis/'+i).once('value', s => { 
                 const f = s.exists() ? s.val().foto : ""; 
-                database.ref('agenda/' + meuID + '/' + i).set({id:i, nome:n, foto:f}); 
-            });
+                database.ref('agenda/'+meuID+'/'+i).set({id:i, nome:n, foto:f}); 
+            }); 
         }
         toggleMenu(); 
     }
@@ -318,7 +305,14 @@
         currentCall = call; 
     }
 
-    function excluirContato(id) { if(confirm("Excluir contato da agenda?")) database.ref('agenda/' + meuID + '/' + id).remove(); }
+    function excluirContato(id) { if(confirm("Excluir?")) database.ref('agenda/'+meuID+'/'+id).remove(); }
+    
+    function toggleMenu() { 
+        const m = document.getElementById('menu-dropdown'); 
+        m.style.display = (m.style.display === 'block') ? 'none' : 'block'; 
+    }
+    
+    function abrirAgenda() { document.getElementById('list-contatos').style.display = 'block'; }
 </script>
 </body>
 </html>
