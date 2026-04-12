@@ -4,18 +4,25 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Web GPT Pro - Full Edition</title>
-    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
     <style>
         :root { --led-green: #00ff00; --primary: #800080; --orange: #ffa500; --led-blue: #00fbff; }
         * { box-sizing: border-box; outline: none; -webkit-tap-highlight-color: transparent; }
-        html, body { margin: 0; padding: 0; width: 100%; height: 100%; background: #000; font-family: sans-serif; overflow: hidden; position: fixed; }
+        
+        html, body { 
+            margin: 0; padding: 0; width: 100%; height: 100%; 
+            background: #000; font-family: sans-serif; overflow: hidden; position: fixed; 
+        }
 
-        .app-main { display: flex; flex-direction: column; width: 100%; height: 100%; background: linear-gradient(180deg, #1e56a0 0%, #163e75 100%); position: relative; }
+        .app-main { 
+            display: flex; flex-direction: column; width: 100%; height: 100%; 
+            background: linear-gradient(180deg, #1e56a0 0%, #163e75 100%); 
+            position: relative; z-index: 1;
+        }
 
-        /* NOTCH */
-        .notch-area { display: flex; flex-direction: column; align-items: center; z-index: 10000; }
+        /* NOTCH AREA */
+        .notch-area { display: flex; flex-direction: column; align-items: center; z-index: 10000; padding-top: 5px; }
         .notch { 
             width: 150px; height: 40px; background: #000; 
             border-bottom-left-radius: 20px; border-bottom-right-radius: 20px; 
@@ -25,197 +32,173 @@
         .label-perfil-notch { color: white; font-size: 11px; font-weight: bold; margin-top: 5px; text-shadow: 0 0 5px #000; }
         #my-header-pic { width: 100%; height: 100%; object-fit: cover; display: none; }
 
-        /* CABEÇALHO SEM CONFLITO */
+        /* HEADER & ENGRENAGEM */
         .header { 
             height: 45px; padding: 0 15px; 
             display: flex; align-items: center; justify-content: space-between; 
-            position: absolute; top: 5px; width: 100%; z-index: 11000;
-            pointer-events: none; /* Deixa o clique passar para os botões específicos */
+            position: absolute; top: 10px; width: 100%; z-index: 9000; 
         }
-        
-        .btn-engrenagem { 
-            font-size: 1.4em; cursor: pointer; pointer-events: auto; 
-            z-index: 12000; padding: 5px; 
-        }
-
-        #led-chamada { 
-            display: none; color: var(--led-blue); font-size: 10px; font-weight: bold; 
-            text-shadow: 0 0 8px var(--led-blue); animation: blink 1s infinite; 
-            cursor: pointer; pointer-events: auto;
-        }
-        @keyframes blink { 50% { opacity: 0.3; } }
-
-        #meu-id-txt { color: var(--led-green); font-weight: bold; font-size: 0.75em; pointer-events: none; }
+        .btn-engrenagem { font-size: 1.5em; cursor: pointer; color: white; z-index: 10001; }
+        #meu-id-txt { color: var(--led-green); font-weight: bold; font-size: 0.8em; text-shadow: 0 0 5px #000; }
 
         /* VISOR */
-        .visor { flex: 1; position: relative; overflow: hidden; margin-top: 20px; z-index: 1; }
-        
-        /* BOTÃO LIGAR PISCANDO */
-        .card-contato { width: 130px; background: rgba(0,0,0,0.8); border: 1px solid var(--primary); border-radius: 15px; padding: 10px; text-align: center; margin: 10px; display: inline-block; }
-        .btn-ligar { 
-            width: 100%; padding: 8px; border-radius: 8px; border: none; background: var(--led-green); color: #000; font-weight: bold; font-size: 10px; margin-top: 8px; 
-            animation: pulse 1.2s infinite; cursor: pointer;
+        .visor { 
+            flex: 1; position: relative; overflow: hidden; 
+            background-size: cover; background-position: center;
+            margin-top: 10px; z-index: 5;
         }
-        @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(0,255,0,0.7); } 70% { box-shadow: 0 0 0 10px rgba(0,255,0,0); } 100% { box-shadow: 0 0 0 0 rgba(0,255,0,0); } }
 
-        /* MENU DROPDOWN - ACIMA DE TUDO */
+        /* DROPDOWN MENU */
         .dropdown-menu { 
-            position: absolute; top: 55px; left: 10px; 
-            background: rgba(0,0,0,0.98); border: 2px solid var(--primary); 
+            position: absolute; top: 60px; left: 15px; 
+            background: rgba(0,0,0,0.95); border: 1px solid var(--primary); 
             border-radius: 15px; width: 220px; display: none; z-index: 20000; 
         }
         .dropdown-item { padding: 15px; border-bottom: 1px solid #222; color: var(--orange); font-size: 0.9em; font-weight: bold; cursor: pointer; }
 
-        /* INTERFACE DE LOGIN E PERFIL */
-        #screen-login { position: fixed; inset: 0; background: #000; z-index: 30000; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; }
-        #view-perfil-full { position: fixed; inset: 0; background: rgba(0,0,0,0.95); z-index: 40000; display: none; flex-direction: column; align-items: center; justify-content: center; }
+        /* LOGIN SCREEN */
+        #screen-login { 
+            position: fixed; inset: 0; background: #000; 
+            z-index: 50000; display: flex; flex-direction: column; 
+            align-items: center; justify-content: center; padding: 20px; 
+        }
+        #led-generator { width: 100px; height: 100px; border-radius: 50%; border: 3px solid #fff; display: flex; align-items: center; justify-content: center; overflow: hidden; cursor: pointer; }
+        #preview-foto-login { width: 100%; height: 100%; object-fit: cover; }
+        
+        input { 
+            width: 80%; padding: 12px; margin-top: 15px; border-radius: 10px; 
+            background: #111; color: white; border: 1px solid var(--primary); text-align: center; 
+        }
+
+        .camera-footer { height: 70px; display: flex; justify-content: center; align-items: center; background: rgba(0,0,0,0.4); z-index: 10; }
+        .btn-red { width: 60px; height: 40px; background: #b30000; border-radius: 10px; border: 2px solid #500; cursor: pointer; }
     </style>
 </head>
 <body>
 
+<div id="screen-login">
+    <h2 style="color:var(--primary)">WEB GPT PRO</h2>
+    <div id="led-generator" onclick="document.getElementById('my-photo-input').click()">
+        <img id="preview-foto-login" src="" style="display:none">
+        <span id="txt-add" style="color:white; font-size:12px;">FOTO</span>
+    </div>
+    <input type="text" id="input-nome" placeholder="SEU NOME">
+    <input type="number" id="input-id" placeholder="ID (DIGITE OU GERE)">
+    <button onclick="gerarID()" style="margin-top:10px; background:none; border:1px solid var(--orange); color:var(--orange); padding:8px; border-radius:8px;">GERAR NOVO ID</button>
+    <button onclick="entrar()" style="width:80%; padding:15px; margin-top:30px; background:var(--primary); color:white; border:none; border-radius:15px; font-weight:bold;">ACESSAR SISTEMA</button>
+</div>
+
 <div class="app-main">
     <div class="notch-area">
-        <div class="notch" onclick="abrirPerfilReal()">
+        <div class="notch" onclick="document.getElementById('my-photo-input').click()">
             <img id="my-header-pic" src="">
         </div>
         <div class="label-perfil-notch">PERFIL</div>
     </div>
 
     <div class="header">
-        <div class="btn-engrenagem" onclick="toggleMenu(event)">⚙️</div>
-        <div id="led-chamada" onclick="encerrarLigacao()">🔵 ENCERRAR LIGAÇÃO</div>
+        <div class="btn-engrenagem" onclick="toggleMenu()">⚙️</div>
         <div id="meu-id-txt">ID: ...</div>
     </div>
 
     <div id="menu-dropdown" class="dropdown-menu">
-        <div class="dropdown-item" onclick="abrirAgenda()">📂 CONTATOS</div>
-        <div class="dropdown-item" onclick="novoContato()">👤 ADICIONAR AMIGO</div>
-        <div class="dropdown-item" style="color:red" onclick="toggleMenu(event)">✖ FECHAR</div>
+        <div class="dropdown-item" onclick="abrirAgenda()">📂 LISTA DE CONTATOS</div>
+        <div class="dropdown-item" onclick="novoAmigo()">👤 ADICIONAR AMIGO</div>
+        <div class="dropdown-item" onclick="document.getElementById('bg-input').click()">🖼️ MUDAR FUNDO</div>
+        <div class="dropdown-item" style="color:red" onclick="toggleMenu()">✖ FECHAR</div>
     </div>
 
     <div class="visor" id="visor-container">
-        <div id="list-contatos" style="display:none; position:absolute; inset:0; background:rgba(0,0,0,0.9); z-index:15000; padding:20px; overflow-y: auto;">
-             <button onclick="document.getElementById('list-contatos').style.display='none'" style="width:100%; padding:15px; background:red; color:white; border:none; border-radius:10px; margin-bottom:15px;">FECHAR</button>
-             <div id="contatos-render"></div>
-        </div>
         <div id="contatos-na-tela"></div>
+        
+        <div id="list-contatos" style="display:none; position:absolute; inset:0; background:rgba(0,0,0,0.9); z-index:30000; padding:20px;">
+             <button onclick="fecharAgenda()" style="width:100%; padding:15px; background:red; color:white; border:none; border-radius:10px;">VOLTAR</button>
+             <div id="contatos-render" style="margin-top:20px;"></div>
+        </div>
     </div>
 
-    <div class="camera-footer" style="height:60px; display:flex; justify-content:center; align-items:center; background:rgba(0,0,0,0.5);">
-        <div style="width:60px; height:40px; background:#b30000; border-radius:10px; border:2px solid #500; cursor:pointer;" onclick="abrirAgenda()"></div>
+    <div class="camera-footer">
+        <div class="btn-red" onclick="abrirAgenda()"></div>
     </div>
 </div>
 
-<div id="screen-login">
-    <h2 style="color:var(--primary)">WEB GPT PRO</h2>
-    <div style="width:100px; height:100px; border-radius:50%; border:3px solid #fff; display:flex; align-items:center; justify-content:center; overflow:hidden; cursor:pointer;" onclick="document.getElementById('my-photo-input').click()">
-        <img id="preview-foto-login" src="" style="width:100%; height:100%; object-fit:cover; display:none">
-        <span id="txt-add" style="color:white; font-size:12px;">FOTO</span>
-    </div>
-    <input type="text" id="input-nome" placeholder="NOME" style="width:80%; padding:12px; margin-top:20px; border-radius:10px; background:#111; color:white; border:1px solid var(--primary); text-align:center;">
-    <input type="number" id="input-id" oninput="buscarIDAutomatico(this.value)" placeholder="DIGITE SEU ID" style="width:80%; padding:12px; margin-top:10px; border-radius:10px; background:#222; color:var(--led-green); text-align:center; font-weight:bold; border:none;">
-    <button onclick="entrar()" style="width:80%; padding:15px; margin-top:30px; background:var(--primary); color:white; border:none; border-radius:15px; font-weight:bold;">ACESSAR</button>
-</div>
-
-<input type="file" id="my-photo-input" accept="image/*" style="display:none" onchange="salvarFotoPerfil(this)">
+<input type="file" id="my-photo-input" accept="image/*" style="display:none" onchange="salvarFoto(this)">
+<input type="file" id="bg-input" accept="image/*" style="display:none" onchange="mudarFundo(this)">
 
 <script>
     const firebaseConfig = { apiKey: "AIzaJ4WY8pvL7cAgXIZpSkIDk1Oy4rbsb92mgNN", databaseURL: "https://netbase-cloud-default-rtdb.firebaseio.com/" };
     firebase.initializeApp(firebaseConfig);
     const database = firebase.database();
+    
     let meuID = "", meuNome = "", minhaFoto = "";
 
-    function toggleMenu(e) {
-        if(e) e.stopPropagation();
+    function gerarID() { document.getElementById('input-id').value = Math.floor(100000 + Math.random() * 900000); }
+
+    function toggleMenu() {
         const m = document.getElementById('menu-dropdown');
         m.style.display = (m.style.display === 'block') ? 'none' : 'block';
     }
 
-    function abrirAgenda() {
-        document.getElementById('list-contatos').style.display = 'block';
-        document.getElementById('menu-dropdown').style.display = 'none';
-    }
+    function abrirAgenda() { document.getElementById('list-contatos').style.display = 'block'; toggleMenu(); }
+    function fecharAgenda() { document.getElementById('list-contatos').style.display = 'none'; }
 
-    function entrar() {
-        meuID = document.getElementById('input-id').value;
-        meuNome = document.getElementById('input-nome').value;
-        if(!meuID || !meuNome) return alert("Preencha Nome e ID");
-        database.ref('perfis/'+meuID).update({ nome: meuNome, foto: minhaFoto });
-        document.getElementById('screen-login').style.display = 'none';
-        document.getElementById('meu-id-txt').innerText = "ID: " + meuID;
-        sincronizarContatos();
-    }
-
-    function iniciarChamada(id) {
-        document.getElementById('btn-ligar-' + id).style.visibility = 'hidden';
-        document.getElementById('led-chamada').style.display = 'block';
-        document.getElementById('meu-id-txt').style.opacity = '0';
-    }
-
-    function encerrarLigacao() {
-        document.getElementById('led-chamada').style.display = 'none';
-        document.getElementById('meu-id-txt').style.opacity = '1';
-        document.querySelectorAll('.btn-ligar').forEach(b => b.style.visibility = 'visible');
-    }
-
-    function fixarNaTela(nome, id, foto) {
-        document.getElementById('list-contatos').style.display = 'none';
-        const container = document.getElementById('contatos-na-tela');
-        const card = document.createElement('div');
-        card.className = 'card-contato';
-        card.innerHTML = `
-            <img src="${foto}" style="width:50px; height:50px; border-radius:50%; object-fit:cover; border:2px solid var(--primary);">
-            <div style="color:white; font-size:10px; margin-top:5px;">${nome}</div>
-            <button class="btn-ligar" id="btn-ligar-${id}" onclick="iniciarChamada('${id}')">LIGAR VÍDEO</button>
-        `;
-        container.appendChild(card);
-    }
-
-    function sincronizarContatos() {
-        database.ref('agenda/' + meuID).on('value', snap => {
-            const render = document.getElementById('contatos-render');
-            render.innerHTML = "";
-            snap.forEach(c => {
-                const con = c.val();
-                render.innerHTML += `<div style="padding:15px; border-bottom:1px solid #333; color:white; cursor:pointer;" onclick="fixarNaTela('${con.nome}','${con.id}','${con.foto}')">${con.nome}</div>`;
-            });
-        });
-    }
-
-    function buscarIDAutomatico(id) {
-        if(id.length < 3) return; 
-        database.ref('perfis/'+id).once('value', snap => {
-            if(snap.exists()) {
-                const d = snap.val();
-                document.getElementById('input-nome').value = d.nome;
-                if(d.foto) {
-                    minhaFoto = d.foto;
-                    const pre = document.getElementById('preview-foto-login');
-                    pre.src = d.foto; pre.style.display = 'block';
-                    document.getElementById('txt-add').style.display = 'none';
-                }
-            }
-        });
-    }
-
-    function salvarFotoPerfil(input) {
+    function salvarFoto(input) {
         const reader = new FileReader();
         reader.onload = e => {
             minhaFoto = e.target.result;
             document.getElementById('preview-foto-login').src = minhaFoto;
             document.getElementById('preview-foto-login').style.display = 'block';
             document.getElementById('txt-add').style.display = 'none';
+            document.getElementById('my-header-pic').src = minhaFoto;
+            document.getElementById('my-header-pic').style.display = 'block';
         };
         reader.readAsDataURL(input.files[0]);
     }
-    
-    function novoContato() {
-        const idAmigo = prompt("ID do amigo:");
-        if(idAmigo) database.ref('perfis/'+idAmigo).once('value', s => {
-            if(s.exists()) database.ref('agenda/'+meuID+'/'+idAmigo).set({id:idAmigo, nome:s.val().nome, foto:s.val().foto||""});
-        });
+
+    function mudarFundo(input) {
+        const reader = new FileReader();
+        reader.onload = e => {
+            document.getElementById('visor-container').style.backgroundImage = `url('${e.target.result}')`;
+        };
+        reader.readAsDataURL(input.files[0]);
         toggleMenu();
     }
+
+    async function entrar() {
+        meuID = document.getElementById('input-id').value;
+        meuNome = document.getElementById('input-nome').value;
+        if(!meuID || !meuNome) return alert("Preencha tudo!");
+
+        database.ref('perfis/'+meuID).update({ nome: meuNome, foto: minhaFoto });
+        document.getElementById('screen-login').style.display = 'none';
+        document.getElementById('meu-id-txt').innerText = "ID: " + meuID;
+        sincronizar();
+    }
+
+    function novoAmigo() {
+        const idA = prompt("ID do Amigo:");
+        if(idA) {
+            database.ref('perfis/'+idA).once('value', s => {
+                if(s.exists()) {
+                    database.ref('agenda/'+meuID+'/'+idA).set({ id: idA, nome: s.val().nome, foto: s.val().foto || "" });
+                    alert("Adicionado!");
+                } else { alert("Não encontrado"); }
+            });
+        }
+        toggleMenu();
+    }
+
+    function sincronizar() {
+        database.ref('agenda/'+meuID).on('value', snap => {
+            const render = document.getElementById('contatos-render');
+            render.innerHTML = "";
+            snap.forEach(c => {
+                const d = c.val();
+                render.innerHTML += `<div style="padding:15px; color:white; border-bottom:1px solid #222;" onclick="alert('Ligando para ${d.nome}...')">${d.nome}</div>`;
+            });
+        });
+    }
 </script>
+
 </body>
-</html>
+            </html>
