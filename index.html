@@ -9,13 +9,14 @@
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
     <style>
         :root { --led-green: #00ff00; --primary: #800080; --orange: #ffa500; --led-blue: #00fbff; }
-        * { box-sizing: border-box; touch-action: none; outline: none; -webkit-tap-highlight-color: transparent; }
+        
+        * { box-sizing: border-box; outline: none; -webkit-tap-highlight-color: transparent; }
+        
         html, body { margin: 0; padding: 0; width: 100%; height: 100%; background: #000; font-family: sans-serif; overflow: hidden; position: fixed; }
 
         .app-main { display: flex; flex-direction: column; width: 100%; height: 100%; background: linear-gradient(180deg, #1e56a0 0%, #163e75 100%); position: relative; }
 
-        /* NOTCH E LABEL PERFIL */
-        .notch-area { display: flex; flex-direction: column; align-items: center; z-index: 10000; }
+        .notch-area { display: flex; flex-direction: column; align-items: center; z-index: 10000; position: relative; }
         .notch { 
             width: 150px; height: 40px; background: #000; 
             border-bottom-left-radius: 20px; border-bottom-right-radius: 20px; 
@@ -26,13 +27,53 @@
         
         #my-header-pic { width: 100%; height: 100%; object-fit: cover; display: none; }
 
-        .header { height: 45px; padding: 0 15px; display: flex; align-items: flex-start; justify-content: space-between; position: absolute; top: 5px; width: 100%; z-index: 9000; }
+        .header { height: 45px; padding: 0 15px; display: flex; align-items: center; justify-content: space-between; position: absolute; top: 5px; width: 100%; z-index: 9000; }
         #meu-id-txt { color: var(--led-green); font-weight: bold; font-size: 0.75em; text-shadow: 0 0 5px #000; }
-        .btn-engrenagem { font-size: 1.4em; text-shadow: 0 0 5px #000; cursor: pointer; }
+        .btn-engrenagem { font-size: 1.6em; text-shadow: 0 0 5px #000; cursor: pointer; color: white; }
 
-        .visor { flex: 1; position: relative; overflow: hidden; background-size: cover; background-position: center; margin-top: 20px;}
+        /* NOVO: LED AZUL NO CABEÇALHO */
+        #led-chamada { 
+            display: none; color: var(--led-blue); font-size: 10px; font-weight: bold; 
+            text-shadow: 0 0 8px var(--led-blue); cursor: pointer;
+            animation: blink-blue 1s infinite;
+        }
+
+        @keyframes blink-blue { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+        .visor { flex: 1; position: relative; overflow: hidden; background-size: cover; background-position: center; margin-top: 50px;}
         
-        /* TELA DE PERFIL EM TAMANHO REAL */
+        .dropdown-menu { 
+            position: absolute; top: 55px; left: 10px; 
+            background: rgba(0,0,0,0.95); border: 2px solid var(--primary); 
+            border-radius: 15px; width: 220px; display: none; z-index: 100000; 
+            pointer-events: auto !important;
+        }
+        .dropdown-item { 
+            padding: 18px; border-bottom: 1px solid #222; 
+            color: var(--orange); font-size: 0.9em; font-weight: bold; 
+            cursor: pointer; display: flex; align-items: center; gap: 10px;
+        }
+
+        /* NOVO: CONTATO FLUTUANTE E BOTÃO PISCANDO */
+        .card-contato {
+            width: 130px; background: rgba(0,0,0,0.7); border: 1px solid var(--primary);
+            border-radius: 15px; padding: 10px; text-align: center; margin: 10px;
+            display: inline-block; position: relative;
+        }
+
+        .btn-ligar {
+            width: 100%; padding: 8px; border-radius: 8px; border: none;
+            background: var(--led-green); color: black; font-weight: bold; font-size: 10px;
+            margin-top: 8px; cursor: pointer;
+            animation: pulse-green 1.2s infinite;
+        }
+
+        @keyframes pulse-green {
+            0% { box-shadow: 0 0 0 0 rgba(0, 255, 0, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(0, 255, 0, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(0, 255, 0, 0); }
+        }
+
         #view-perfil-full { position: fixed; inset: 0; background: rgba(0,0,0,0.95); z-index: 50000; display: none; flex-direction: column; align-items: center; justify-content: center; }
         #view-perfil-full img { width: 280px; height: 280px; border-radius: 20px; border: 3px solid var(--led-blue); object-fit: cover; }
         #nome-perfil-real { color: white; margin-top: 20px; font-size: 24px; font-weight: bold; }
@@ -40,9 +81,6 @@
         #screen-login { position: fixed; inset: 0; background: #000; z-index: 20000; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; }
         #led-generator { width: 100px; height: 100px; border-radius: 50%; border: 3px solid #fff; display: flex; align-items: center; justify-content: center; overflow: hidden; cursor: pointer; }
         #preview-foto-login { width: 100%; height: 100%; object-fit: cover; }
-
-        .dropdown-menu { position: absolute; top: 50px; left: 10px; background: rgba(0,0,0,0.95); border: 1px solid var(--primary); border-radius: 15px; width: 220px; display: none; z-index: 11000; }
-        .dropdown-item { padding: 15px; border-bottom: 1px solid #222; color: var(--orange); font-size: 0.9em; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -56,20 +94,28 @@
     </div>
 
     <div class="header">
-        <div class="btn-engrenagem" onclick="toggleMenu()">⚙️</div>
+        <div class="btn-engrenagem" onclick="toggleMenu(event)">⚙️</div>
+        <div id="led-chamada" onclick="encerrarLigacao()">🔵 ENCERRAR LIGAÇÃO</div>
         <div id="meu-id-txt">ID: ...</div>
+
+        <div id="menu-dropdown" class="dropdown-menu">
+            <div class="dropdown-item" onclick="abrirAgenda(); event.stopPropagation();">📂 CONTATOS</div>
+            <div class="dropdown-item" onclick="novoContato(event)">👤 ADICIONAR AMIGO</div>
+            <div class="dropdown-item" onclick="document.getElementById('my-photo-input').click(); event.stopPropagation();">🖼️ TROCAR FOTO</div>
+            <div class="dropdown-item" style="color:red; border-top:1px solid #333;" onclick="toggleMenu(event)">✖ FECHAR</div>
+        </div>
     </div>
 
     <div class="visor" id="visor-container">
-        <div id="list-contatos" style="display:none; position:absolute; inset:0; background:rgba(0,0,0,0.9); z-index:15000; padding:20px; overflow-y: auto;">
-             <button onclick="document.getElementById('list-contatos').style.display='none'" style="width:100%; padding:10px; background:red; color:white; border:none; border-radius:10px; margin-bottom:15px;">FECHAR</button>
+        <div id="list-contatos" style="display:none; position:absolute; inset:0; background:rgba(0,0,0,0.95); z-index:15000; padding:20px; overflow-y: auto;">
+             <button onclick="document.getElementById('list-contatos').style.display='none'" style="width:100%; padding:15px; background:red; color:white; border:none; border-radius:10px; margin-bottom:15px; font-weight:bold;">VOLTAR</button>
              <div id="contatos-render"></div>
         </div>
         <div id="contatos-na-tela"></div>
     </div>
 
-    <div class="camera-footer" style="height:60px; display:flex; justify-content:center; align-items:center; background:rgba(0,0,0,0.5);">
-        <div style="width:50px; height:35px; background:#b30000; border-radius:8px; border:2px solid #500;" onclick="abrirAgenda()"></div>
+    <div class="camera-footer" style="height:70px; display:flex; justify-content:center; align-items:center; background:rgba(0,0,0,0.6);">
+        <div style="width:60px; height:40px; background:#b30000; border-radius:10px; border:2px solid #500; cursor:pointer;" onclick="abrirAgenda()"></div>
     </div>
 </div>
 
@@ -93,12 +139,6 @@
     <button onclick="entrar()" style="width:80%; padding:15px; margin-top:30px; background:var(--primary); color:white; border:none; border-radius:15px; font-weight:bold;">ACESSAR</button>
 </div>
 
-<div id="menu-dropdown" class="dropdown-menu">
-    <div class="dropdown-item" onclick="abrirAgenda()">📂 CONTATOS</div>
-    <div class="dropdown-item" onclick="novoContato()">👤 ADICIONAR AMIGO</div>
-    <div class="dropdown-item" style="color:red" onclick="toggleMenu()">✖ FECHAR</div>
-</div>
-
 <script>
     const firebaseConfig = { apiKey: "AIzaJ4WY8pvL7cAgXIZpSkIDk1Oy4rbsb92mgNN", databaseURL: "https://netbase-cloud-default-rtdb.firebaseio.com/" };
     firebase.initializeApp(firebaseConfig);
@@ -107,7 +147,6 @@
     const hardwareID = navigator.userAgent.replace(/\D/g, "") + screen.width;
     let meuID = "", meuNome = "", minhaFoto = "";
 
-    // BUSCA AUTOMÁTICA AO DIGITAR O ID
     function buscarIDAutomatico(id) {
         if(id.length < 3) return; 
         database.ref('perfis/'+id).once('value', snap => {
@@ -121,7 +160,6 @@
                     pre.style.display = 'block';
                     document.getElementById('txt-add').style.display = 'none';
                 }
-                console.log("Dados carregados para o ID: " + id);
             }
         });
     }
@@ -144,17 +182,16 @@
             document.getElementById('txt-add').style.display = 'none';
             document.getElementById('my-header-pic').src = minhaFoto;
             document.getElementById('my-header-pic').style.display = 'block';
+            if(meuID) database.ref('perfis/'+meuID).update({ foto: minhaFoto });
         };
         reader.readAsDataURL(input.files[0]);
+        if(document.getElementById('menu-dropdown').style.display === 'block') toggleMenu();
     }
 
     async function entrar() {
         meuID = document.getElementById('input-id').value;
         meuNome = document.getElementById('input-nome').value;
         if(!meuID || !meuNome) return alert("Preencha Nome e ID");
-
-        const snap = await database.ref('perfis/'+meuID).once('value');
-        if(snap.exists() && snap.val().hw && snap.val().hw !== hardwareID) return alert("ID em outro dispositivo!");
 
         database.ref('perfis/'+meuID).update({ nome: meuNome, foto: minhaFoto, hw: hardwareID });
         document.getElementById('screen-login').style.display = 'none';
@@ -166,17 +203,21 @@
         sincronizarContatos();
     }
 
-    function novoContato() {
-        const idAmigo = prompt("ID do amigo:");
+    function novoContato(e) {
+        if(e) e.stopPropagation();
+        const idAmigo = prompt("Digite o ID do amigo:");
         if(!idAmigo) return;
+        
         database.ref('perfis/' + idAmigo).once('value', snap => {
             if(snap.exists()){
                 const d = snap.val();
                 database.ref('agenda/' + meuID + '/' + idAmigo).set({ id: idAmigo, nome: d.nome, foto: d.foto || "" });
-                alert("Salvo!");
+                alert("✅ " + d.nome + " adicionado!");
+                toggleMenu();
+            } else {
+                alert("❌ ID não encontrado!");
             }
         });
-        toggleMenu();
     }
 
     function sincronizarContatos() {
@@ -185,13 +226,76 @@
             render.innerHTML = "";
             snap.forEach(c => {
                 const con = c.val();
-                render.innerHTML += `<div style="padding:15px; border-bottom:1px solid #333; color:white;" onclick="fixarNaTela('${con.nome}','${con.id}','${con.foto}')">${con.nome}</div>`;
+                render.innerHTML += `
+                    <div style="display:flex; align-items:center; gap:15px; padding:15px; border-bottom:1px solid #333; color:white;" onclick="fixarNaTela('${con.nome}','${con.id}','${con.foto}')">
+                        <img src="${con.foto}" style="width:40px; height:40px; border-radius:50%; object-fit:cover; border:1px solid var(--primary);">
+                        <div><b>${con.nome}</b><br><small>ID: ${con.id}</small></div>
+                    </div>`;
             });
         });
     }
 
-    function toggleMenu() { const m = document.getElementById('menu-dropdown'); m.style.display = (m.style.display === 'block') ? 'none' : 'block'; }
-    function abrirAgenda() { document.getElementById('list-contatos').style.display = 'block'; }
+    // NOVO: FIXAR CONTATO NA TELA E FUNÇÃO DE CHAMADA
+    function fixarNaTela(nome, id, foto) {
+        document.getElementById('list-contatos').style.display = 'none';
+        const container = document.getElementById('contatos-na-tela');
+        
+        const card = document.createElement('div');
+        card.className = 'card-contato';
+        card.id = "card-" + id;
+        card.innerHTML = `
+            <img src="${foto}" style="width:50px; height:50px; border-radius:50%; object-fit:cover; border:2px solid var(--primary);">
+            <div style="color:white; font-size:10px; margin-top:5px;">${nome}</div>
+            <button class="btn-ligar" id="btn-ligar-${id}" onclick="iniciarChamada('${id}')">LIGAR VÍDEO</button>
+        `;
+        container.appendChild(card);
+    }
+
+    function iniciarChamada(id) {
+        // 1. Esconde o botão de ligar
+        document.getElementById('btn-ligar-' + id).style.visibility = 'hidden';
+        
+        // 2. Mostra o LED Azul no cabeçalho
+        const led = document.getElementById('led-chamada');
+        led.style.display = 'block';
+        
+        // 3. Esconde o texto do seu ID para dar espaço ao LED
+        document.getElementById('meu-id-txt').style.display = 'none';
+        
+        console.log("Chamada iniciada para: " + id);
+    }
+
+    function encerrarLigacao() {
+        // 1. Esconde o LED Azul
+        document.getElementById('led-chamada').style.display = 'none';
+        
+        // 2. Mostra o ID novamente
+        document.getElementById('meu-id-txt').style.display = 'block';
+        
+        // 3. Torna todos os botões de ligar visíveis novamente
+        const botoes = document.querySelectorAll('.btn-ligar');
+        botoes.forEach(b => b.style.visibility = 'visible');
+        
+        alert("Ligação Encerrada");
+    }
+
+    function toggleMenu(e) {
+        if(e) { e.preventDefault(); e.stopPropagation(); }
+        const m = document.getElementById('menu-dropdown');
+        m.style.display = (m.style.display === 'block') ? 'none' : 'block';
+    }
+
+    function abrirAgenda() { 
+        document.getElementById('list-contatos').style.display = 'block'; 
+        if(document.getElementById('menu-dropdown').style.display === 'block') toggleMenu();
+    }
+
+    window.addEventListener('click', function(e) {
+        const m = document.getElementById('menu-dropdown');
+        if (m.style.display === 'block' && !m.contains(e.target)) {
+            m.style.display = 'none';
+        }
+    });
 </script>
 </body>
 </html>
