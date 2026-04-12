@@ -54,7 +54,6 @@
             top: 0; left: 0; z-index: 50; background: #000;
         }
         .floating-img img { width: 100%; height: 100%; object-fit: contain; }
-        .btn-sair-foto { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); background: red; color: white; border: none; padding: 15px; border-radius: 10px; font-weight: bold; z-index: 60; }
 
         .dropdown-menu { position: absolute; top: 130px; left: 0; background: rgba(0,0,0,0.95); border: 1px solid var(--primary); border-radius: 0 15px 15px 0; width: 200px; display: none; z-index: 11000; }
         .dropdown-item { padding: 15px; border-bottom: 1px solid #222; color: var(--orange); font-size: 0.9em; font-weight: bold; }
@@ -64,11 +63,15 @@
         .btn-gerar { background: none; border: 1px dashed var(--led-blue); color: var(--led-blue); font-size: 11px; padding: 8px; margin-top: 5px; border-radius: 8px; cursor: pointer; width: 80%; }
 
         #incoming-screen { position: fixed; inset: 0; background: rgba(0,0,0,0.95); z-index: 60000; display: none; flex-direction: column; align-items: center; justify-content: space-around; padding: 40px 20px; }
+        
+        /* Sliders */
         .slider-container { width: 280px; height: 75px; background: #222; border-radius: 40px; position: relative; display: flex; align-items: center; border: 2px solid #444; overflow: hidden; }
         .slider-btn { width: 65px; height: 65px; background: var(--led-green); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; cursor: pointer; position: absolute; left: 5px; z-index: 2; box-shadow: 0 0 15px var(--led-green); }
+        .slider-btn.hangup { background: #ff0000; box-shadow: 0 0 15px #ff0000; }
         .slider-text { width: 100%; text-align: center; color: white; font-size: 12px; font-weight: bold; letter-spacing: 1px; opacity: 0.6; }
 
-        /* Estilo do botão da câmera */
+        #hangup-slider-box { position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%); z-index: 20000; display: none; }
+
         #cam-footer-btn { width:50px; height:35px; background:#b30000; border-radius:8px; border:2px solid #500; cursor:pointer; transition: 0.3s; }
         #cam-footer-btn.active { background: var(--led-green); border-color: #006600; box-shadow: 0 0 10px var(--led-green); }
     </style>
@@ -98,8 +101,16 @@
              <div id="contatos-render"></div>
         </div>
         <div id="contatos-na-tela"></div>
-        <div id="img-persistente-container"></div> <video id="video-remote" autoplay playsinline></video>
+        <div id="img-persistente-container"></div> 
+        <video id="video-remote" autoplay playsinline></video>
         <video id="video-local" autoplay playsinline muted></video>
+    </div>
+
+    <div id="hangup-slider-box">
+        <div class="slider-container" id="hangup-track">
+            <div class="slider-text">ARRASTE PARA DESLIGAR</div>
+            <div id="hangup-handle" class="slider-btn hangup">📵</div>
+        </div>
     </div>
 
     <div class="camera-footer" style="height:60px; display:flex; justify-content:center; align-items:center; background:rgba(0,0,0,0.5);">
@@ -129,7 +140,6 @@
         <div class="slider-text">ARRASTE PARA ATENDER</div>
         <div id="slider-handle" class="slider-btn">📞</div>
     </div>
-    <button onclick="recusarChamada()" style="background: #ff0000; color: white; border: none; width: 80%; padding: 18px; border-radius: 40px; font-weight: bold; font-size: 16px;">DESLIGAR</button>
 </div>
 
 <input type="file" id="my-photo-input" accept="image/*" style="display:none" onchange="processarFoto(this, 'login')">
@@ -170,10 +180,7 @@
     }
     const myFingerprint = getDeviceFingerprint();
 
-    function gerarIdNovo() {
-        const novoId = Math.floor(100000 + Math.random() * 900000);
-        document.getElementById('input-id').value = novoId;
-    }
+    function gerarIdNovo() { document.getElementById('input-id').value = Math.floor(100000 + Math.random() * 900000); }
 
     function buscarDadosAuto(id) {
         if(id.length < 3) return;
@@ -195,10 +202,7 @@
         meuID = document.getElementById('input-id').value;
         meuNome = document.getElementById('input-nome').value;
         if(!meuID || !meuNome) return alert("Preencha Nome e ID");
-
-        // "Acorda" o som para o navegador permitir toque automático depois
         ringtone.play().then(() => ringtone.pause()).catch(() => {});
-
         localStorage.setItem('last_id', meuID);
         localStorage.setItem('last_nome', meuNome);
 
@@ -222,8 +226,7 @@
     }
 
     function incomingCallInterface(call) {
-        ringtone.play().catch(e => console.log("Erro som:", e));
-        if (navigator.vibrate) navigator.vibrate([1000, 500, 1000, 500, 1000]);
+        ringtone.play().catch(() => {});
         document.getElementById('incoming-screen').style.display = 'flex';
         database.ref('perfis/' + call.peer).once('value', s => {
             if(s.exists()){
@@ -231,18 +234,7 @@
                 document.getElementById('caller-photo').src = s.val().foto;
             }
         });
-        const handle = document.getElementById('slider-handle');
-        const track = document.getElementById('slider-track');
-        let isMoving = false;
-        handle.ontouchstart = () => isMoving = true;
-        handle.ontouchmove = (e) => {
-            if(!isMoving) return;
-            let x = e.touches[0].clientX - track.getBoundingClientRect().left - 32;
-            if(x < 5) x = 5; if(x > 210) x = 210;
-            handle.style.left = x + "px";
-            if(x >= 205) { isMoving = false; atender(call); }
-        };
-        handle.ontouchend = () => { isMoving = false; handle.style.left = "5px"; };
+        setupSlider('slider-handle', 'slider-track', () => atender(call));
     }
 
     function atender(call) {
@@ -250,39 +242,64 @@
         document.getElementById('incoming-screen').style.display = 'none';
         ativarCamera().then(() => {
             call.answer(localStream);
-            call.on('stream', s => { document.getElementById('video-remote').srcObject = s; });
-            currentCall = call;
+            handleCallStream(call);
         });
     }
 
-    function recusarChamada() { pararToque(); document.getElementById('incoming-screen').style.display = 'none'; if(currentCall) currentCall.close(); }
-    function pararToque() { ringtone.pause(); ringtone.currentTime = 0; if(navigator.vibrate) navigator.vibrate(0); }
+    function handleCallStream(call) {
+        currentCall = call;
+        document.getElementById('cam-footer-btn').classList.add('active');
+        document.getElementById('hangup-slider-box').style.display = 'block';
+        setupSlider('hangup-handle', 'hangup-track', finalizarChamada);
+        
+        call.on('stream', s => { document.getElementById('video-remote').srcObject = s; });
+        call.on('close', finalizarChamada);
+    }
 
-    // FUNÇÃO DA IMAGEM PERSISTENTE
+    function setupSlider(handleId, trackId, callback) {
+        const handle = document.getElementById(handleId);
+        const track = document.getElementById(trackId);
+        let isMoving = false;
+        handle.style.left = "5px";
+
+        handle.ontouchstart = () => isMoving = true;
+        handle.ontouchmove = (e) => {
+            if(!isMoving) return;
+            let x = e.touches[0].clientX - track.getBoundingClientRect().left - 32;
+            if(x < 5) x = 5; if(x > 210) x = 210;
+            handle.style.left = x + "px";
+            if(x >= 205) { isMoving = false; callback(); }
+        };
+        handle.ontouchend = () => { isMoving = false; handle.style.left = "5px"; };
+    }
+
+    function finalizarChamada() {
+        if(currentCall) currentCall.close();
+        document.getElementById('hangup-slider-box').style.display = 'none';
+        document.getElementById('cam-footer-btn').classList.remove('active');
+        document.getElementById('video-remote').srcObject = null;
+        pararToque();
+    }
+
+    function pararToque() { ringtone.pause(); ringtone.currentTime = 0; }
+
     function imgParaTela(input) {
         const reader = new FileReader();
         reader.onload = e => {
             const container = document.getElementById('img-persistente-container');
-            container.innerHTML = ""; // Limpa a foto anterior antes de colocar a nova
-            const card = document.createElement('div');
-            card.className = 'floating-img';
-            card.innerHTML = `<img src="${e.target.result}"><button class="btn-sair-foto" onclick="this.parentElement.remove()">SAIR DA TELA</button>`;
-            container.appendChild(card);
+            container.innerHTML = `<div class="floating-img"><img src="${e.target.result}"></div>`;
             fecharPerfil();
         };
         reader.readAsDataURL(input.files[0]);
     }
 
     async function toggleCameraManual() {
-        const btn = document.getElementById('cam-footer-btn');
-        if(!localStream) {
-            await ativarCamera();
-            btn.classList.add('active');
-        } else {
+        if(!localStream) await ativarCamera();
+        else {
             localStream.getTracks().forEach(t => t.stop());
             localStream = null;
             document.getElementById('video-local').style.display = 'none';
-            btn.classList.remove('active');
+            document.getElementById('cam-footer-btn').classList.remove('active');
         }
     }
 
@@ -292,7 +309,7 @@
             document.getElementById('video-local').srcObject = localStream;
             document.getElementById('video-local').style.display = 'block';
             document.getElementById('cam-footer-btn').classList.add('active');
-        } catch(e) { alert("Câmera bloqueada"); }
+        } catch(e) { console.log("Câmera erro"); }
     }
 
     function abrirConfigPerfil() { document.getElementById('img-full-edit').src = minhaFoto || ""; document.getElementById('view-perfil-full').style.display = 'flex'; }
@@ -342,6 +359,13 @@
         document.getElementById('contatos-na-tela').appendChild(card);
     }
 
+    function ligarPara(id) { 
+        ativarCamera().then(() => {
+            const call = peer.call(id, localStream); 
+            handleCallStream(call);
+        });
+    }
+
     function novoContatoModal() { 
         const n = prompt("Nome:"); const i = prompt("ID:"); 
         if(n && i) database.ref('perfis/'+i).once('value', s => { 
@@ -351,17 +375,8 @@
         toggleMenu(); 
     }
 
-    function ligarPara(id) { 
-        const call = peer.call(id, localStream); 
-        call.on('stream', s => { document.getElementById('video-remote').srcObject = s; }); 
-        currentCall = call; 
-    }
-
     function excluirContato(id) { if(confirm("Excluir?")) database.ref('agenda/'+meuID+'/'+id).remove(); }
-    function toggleMenu() { 
-        const m = document.getElementById('menu-dropdown'); 
-        m.style.display = (m.style.display === 'block') ? 'none' : 'block'; 
-    }
+    function toggleMenu() { const m = document.getElementById('menu-dropdown'); m.style.display = (m.style.display === 'block') ? 'none' : 'block'; }
     function abrirAgenda() { document.getElementById('list-contatos').style.display = 'block'; }
 </script>
 </body>
