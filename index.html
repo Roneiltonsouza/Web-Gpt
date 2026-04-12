@@ -36,7 +36,11 @@
         }
 
         .visor { flex: 1; position: relative; overflow: hidden; margin-top: 10px; }
-        #video-remote { width: 100%; height: 100%; object-fit: cover; position: absolute; top: 0; left: 0; z-index: 1; }
+        
+        /* CORREÇÃO: Video remoto deve estar acima da imagem (z-index: 60) */
+        #video-remote { width: 100%; height: 100%; object-fit: cover; position: absolute; top: 0; left: 0; z-index: 60; background: transparent; }
+        
+        /* CORREÇÃO: Video local deve estar no topo de tudo no visor (z-index: 100) */
         #video-local { width: 85px; height: 120px; position: absolute; top: 10px; right: 10px; border: 2px solid var(--primary); z-index: 100; display: none; border-radius: 12px; object-fit: cover; }
 
         #view-perfil-full { 
@@ -49,6 +53,7 @@
 
         .floating-contact { position: absolute; width: 110px; background: rgba(0,0,0,0.85); border-radius: 15px; padding: 10px; text-align: center; border: 1px solid var(--primary); z-index: 200; transition: transform 0.2s; }
         
+        /* CORREÇÃO: Imagem de tela fica como fundo, abaixo do vídeo (z-index: 50) */
         .floating-img { 
             position: absolute; width: 100%; height: 100%; 
             top: 0; left: 0; z-index: 50; background: #000;
@@ -213,7 +218,6 @@
             }
             database.ref('perfis/'+meuID).update({ nome: meuNome, foto: minhaFoto, fingerprint: myFingerprint });
             
-            // CARREGAR IMAGEM DE TELA PERSISTENTE DO FIREBASE
             if(user && user.imgTela) {
                 renderizarImagemTela(user.imgTela);
             }
@@ -255,6 +259,10 @@
         currentCall = call;
         document.getElementById('cam-footer-btn').classList.add('active');
         document.getElementById('hangup-slider-box').style.display = 'block';
+        
+        // CORREÇÃO: Forçar o vídeo a aparecer na frente ao iniciar stream
+        document.getElementById('video-remote').style.zIndex = "60";
+        
         setupSlider('hangup-handle', 'hangup-track', finalizarChamada);
         
         call.on('stream', s => { document.getElementById('video-remote').srcObject = s; });
@@ -283,12 +291,12 @@
         document.getElementById('hangup-slider-box').style.display = 'none';
         document.getElementById('cam-footer-btn').classList.remove('active');
         document.getElementById('video-remote').srcObject = null;
+        // Resetar o z-index se necessário, mas mantê-lo configurado no CSS já resolve
         pararToque();
     }
 
     function pararToque() { ringtone.pause(); ringtone.currentTime = 0; }
 
-    // SALVAR IMAGEM NA TELA NO FIREBASE
     function imgParaTela(input) {
         const reader = new FileReader();
         reader.onload = e => {
@@ -302,6 +310,7 @@
 
     function renderizarImagemTela(src) {
         const container = document.getElementById('img-persistente-container');
+        // A classe floating-img já tem z-index 50 (atrás do vídeo)
         container.innerHTML = `<div class="floating-img"><img src="${src}"></div>`;
     }
 
